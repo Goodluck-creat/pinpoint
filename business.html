@@ -835,9 +835,26 @@
     const phone = document.getElementById('rider_phone').value;
     const vehicle_type = document.getElementById('rider_vehicle').value;
 
-    const { error: insertError } = await supabaseClient
+    // Check if a rider with this email already exists — update instead of duplicating
+    const { data: existingRider } = await supabaseClient
       .from('riders')
-      .insert({ name, email, phone, vehicle_type, status: 'offline' });
+      .select('id')
+      .eq('email', email)
+      .limit(1);
+
+    let insertError = null;
+    if (existingRider && existingRider.length > 0) {
+      const { error } = await supabaseClient
+        .from('riders')
+        .update({ name, phone, vehicle_type })
+        .eq('id', existingRider[0].id);
+      insertError = error;
+    } else {
+      const { error } = await supabaseClient
+        .from('riders')
+        .insert({ name, email, phone, vehicle_type, status: 'offline' });
+      insertError = error;
+    }
 
     if (insertError) {
       riderSubmitBtn.disabled = false;
