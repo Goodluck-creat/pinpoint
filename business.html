@@ -9,19 +9,22 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root {
-    --bg: #FAFBFC;
+    --bg: #F6F7FA;
     --surface: #FFFFFF;
     --ink: #0F172A;
     --slate: #64748B;
     --slate-light: #94A3B8;
-    --border: #E5E9F0;
+    --border: #E7EAF0;
     --primary: #2454FF;
     --primary-dark: #1A3FD1;
     --primary-tint: #EEF2FF;
     --live: #00C896;
     --live-tint: #E6FBF4;
     --warn: #F59E0B;
-    --radius: 14px;
+    --radius: 16px;
+    --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
+    --shadow-md: 0 4px 16px rgba(15, 23, 42, 0.06);
+    --shadow-lg: 0 12px 32px -8px rgba(15, 23, 42, 0.12);
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -38,16 +41,13 @@
     letter-spacing: -0.01em;
   }
 
-  .mono {
-    font-family: 'JetBrains Mono', monospace;
-  }
+  .mono { font-family: 'JetBrains Mono', monospace; }
 
-  /* ---------- Header ---------- */
   header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 20px 40px;
+    padding: 18px 40px;
     border-bottom: 1px solid var(--border);
     background: var(--surface);
     position: sticky;
@@ -55,29 +55,19 @@
     z-index: 10;
   }
 
-  .brand {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
+  .brand { display: flex; align-items: center; gap: 10px; }
 
   .brand-mark {
-    width: 34px;
-    height: 34px;
+    width: 34px; height: 34px;
     border-radius: 9px;
     background: linear-gradient(135deg, var(--primary), #5B7FFF);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
+    box-shadow: 0 3px 10px rgba(36, 84, 255, 0.25);
   }
-
   .brand-mark svg { width: 18px; height: 18px; }
 
-  .brand-name {
-    font-size: 18px;
-    font-weight: 700;
-  }
+  .brand-name { font-size: 18px; font-weight: 700; }
 
   .brand-tag {
     font-size: 12px;
@@ -91,33 +81,86 @@
   .header-right {
     display: flex;
     align-items: center;
-    gap: 16px;
-    font-size: 14px;
-    color: var(--slate);
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #067A5C;
+    background: var(--live-tint);
+    padding: 6px 12px;
+    border-radius: 100px;
   }
 
   .status-dot {
-    width: 7px;
-    height: 7px;
+    width: 7px; height: 7px;
     border-radius: 50%;
     background: var(--live);
     display: inline-block;
-    margin-right: 6px;
-    box-shadow: 0 0 0 3px var(--live-tint);
+    box-shadow: 0 0 0 3px rgba(0, 200, 150, 0.2);
   }
 
-  /* ---------- Layout ---------- */
-  .layout {
-    display: grid;
-    grid-template-columns: 420px 1fr;
-    gap: 32px;
+  .page {
     max-width: 1280px;
     margin: 0 auto;
-    padding: 40px;
+    padding: 32px 40px 60px;
   }
 
   @media (max-width: 900px) {
-    .layout { grid-template-columns: 1fr; padding: 20px; }
+    .page { padding: 20px; }
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  @media (max-width: 800px) {
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 22px;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .stat-icon {
+    width: 34px; height: 34px;
+    border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 14px;
+  }
+  .stat-icon svg { width: 17px; height: 17px; }
+  .stat-icon.blue { background: var(--primary-tint); }
+  .stat-icon.blue svg { stroke: var(--primary); }
+  .stat-icon.amber { background: #FFF7E6; }
+  .stat-icon.amber svg { stroke: #B7791F; }
+  .stat-icon.green { background: var(--live-tint); }
+  .stat-icon.green svg { stroke: #067A5C; }
+  .stat-icon.slate { background: #F1F5F9; }
+  .stat-icon.slate svg { stroke: var(--slate); }
+
+  .stat-value {
+    font-size: 26px;
+    font-weight: 700;
+    font-family: 'Space Grotesk', sans-serif;
+    margin-bottom: 2px;
+  }
+
+  .stat-label { font-size: 13px; color: var(--slate); }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 420px 1fr;
+    gap: 28px;
+    align-items: start;
+  }
+
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
   }
 
   .panel-title {
@@ -126,20 +169,50 @@
     color: var(--slate);
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    margin-bottom: 16px;
+    margin-bottom: 14px;
   }
 
-  /* ---------- Form Card ---------- */
-  .form-card {
+  .tab-card {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 28px;
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+    margin-bottom: 28px;
   }
 
-  .field {
-    margin-bottom: 18px;
+  .tab-switch {
+    display: flex;
+    background: #F4F5F8;
+    padding: 5px;
+    margin: 16px;
+    border-radius: 11px;
   }
+
+  .tab-btn {
+    flex: 1;
+    padding: 9px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--slate);
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .tab-btn.active {
+    background: var(--surface);
+    color: var(--ink);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .tab-panel { display: none; padding: 4px 24px 24px; }
+  .tab-panel.active { display: block; }
+
+  .field { margin-bottom: 16px; }
 
   .field label {
     display: block;
@@ -162,7 +235,7 @@
     border-radius: 9px;
     font-size: 14px;
     font-family: 'Inter', sans-serif;
-    background: #FDFDFE;
+    background: #FCFCFD;
     color: var(--ink);
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
   }
@@ -174,7 +247,7 @@
     background: #fff;
   }
 
-  textarea { resize: vertical; min-height: 64px; }
+  textarea { resize: vertical; min-height: 60px; }
 
   .submit-btn {
     width: 100%;
@@ -187,13 +260,14 @@
     font-weight: 600;
     font-family: 'Inter', sans-serif;
     cursor: pointer;
-    margin-top: 6px;
+    margin-top: 4px;
     transition: background 0.15s ease, transform 0.1s ease;
+    box-shadow: 0 2px 8px rgba(36, 84, 255, 0.25);
   }
 
   .submit-btn:hover { background: var(--primary-dark); }
   .submit-btn:active { transform: scale(0.99); }
-  .submit-btn:disabled { background: var(--slate-light); cursor: not-allowed; }
+  .submit-btn:disabled { background: var(--slate-light); cursor: not-allowed; box-shadow: none; }
 
   .form-msg {
     font-size: 13px;
@@ -202,18 +276,8 @@
     border-radius: 8px;
     display: none;
   }
-
-  .form-msg.success {
-    display: block;
-    background: var(--live-tint);
-    color: #067A5C;
-  }
-
-  .form-msg.error {
-    display: block;
-    background: #FEF2F2;
-    color: #B91C1C;
-  }
+  .form-msg.success { display: block; background: var(--live-tint); color: #067A5C; }
+  .form-msg.error { display: block; background: #FEF2F2; color: #B91C1C; }
 
   .whatsapp-btn {
     display: flex;
@@ -230,22 +294,62 @@
     margin-top: 10px;
     text-decoration: none;
     transition: background 0.15s ease;
+    box-shadow: 0 2px 8px rgba(37, 211, 102, 0.25);
   }
   .whatsapp-btn:hover { background: #1EBE59; }
   .whatsapp-btn svg { width: 17px; height: 17px; fill: #fff; flex-shrink: 0; }
 
-  /* ---------- Deliveries List ---------- */
+  .riders-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-md);
+    padding: 20px;
+  }
+
+  .rider-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 4px;
+    border-bottom: 1px solid var(--border);
+  }
+  .rider-row:last-child { border-bottom: none; }
+
+  .rider-avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--primary-tint);
+    color: var(--primary);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  .rider-info { flex: 1; min-width: 0; }
+  .rider-info-name { font-size: 13px; font-weight: 600; }
+  .rider-info-meta { font-size: 12px; color: var(--slate-light); }
+
+  .rider-status-pill {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 100px;
+    text-transform: uppercase;
+    background: #F1F5F9;
+    color: var(--slate);
+    flex-shrink: 0;
+  }
+
   .deliveries-header {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
-    margin-bottom: 16px;
+    margin-bottom: 14px;
   }
 
-  .delivery-count {
-    font-size: 13px;
-    color: var(--slate-light);
-  }
+  .delivery-count { font-size: 13px; color: var(--slate-light); }
 
   .empty-state {
     border: 1.5px dashed var(--border);
@@ -253,18 +357,13 @@
     padding: 60px 24px;
     text-align: center;
     color: var(--slate);
+    background: var(--surface);
   }
-
-  .empty-state svg { width: 40px; height: 40px; margin-bottom: 14px; opacity: 0.5; }
+  .empty-state svg { width: 40px; height: 40px; margin-bottom: 14px; opacity: 0.4; }
   .empty-state p { font-size: 14px; }
 
-  .stub-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-  }
+  .stub-grid { display: flex; flex-direction: column; gap: 14px; }
 
-  /* Signature element: boarding-pass style tracking stub */
   .stub {
     display: grid;
     grid-template-columns: 1fr auto;
@@ -272,7 +371,14 @@
     border: 1px solid var(--border);
     border-radius: var(--radius);
     overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
     animation: rise 0.35s ease;
+  }
+
+  .stub:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-2px);
   }
 
   @keyframes rise {
@@ -280,9 +386,7 @@
     to { opacity: 1; transform: translateY(0); }
   }
 
-  .stub-main {
-    padding: 20px 22px;
-  }
+  .stub-main { padding: 20px 22px; }
 
   .stub-top {
     display: flex;
@@ -291,12 +395,7 @@
     margin-bottom: 10px;
   }
 
-  .stub-code {
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--slate);
-    letter-spacing: 0.02em;
-  }
+  .stub-code { font-size: 13px; font-weight: 500; color: var(--slate); letter-spacing: 0.02em; }
 
   .tag {
     font-size: 11px;
@@ -306,17 +405,12 @@
     text-transform: uppercase;
     letter-spacing: 0.03em;
   }
-
   .tag.created { background: var(--primary-tint); color: var(--primary); }
   .tag.assigned { background: #FFF7E6; color: #B7791F; }
   .tag.in_transit { background: var(--live-tint); color: #067A5C; }
   .tag.delivered { background: #F1F5F9; color: var(--slate); }
 
-  .stub-customer {
-    font-size: 16px;
-    font-weight: 600;
-    margin-bottom: 4px;
-  }
+  .stub-customer { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
 
   .stub-route {
     font-size: 13px;
@@ -324,8 +418,8 @@
     display: flex;
     align-items: center;
     gap: 6px;
+    flex-wrap: wrap;
   }
-
   .stub-route .arrow { color: var(--slate-light); }
 
   .stub-side {
@@ -343,8 +437,7 @@
   .stub-side::before, .stub-side::after {
     content: '';
     position: absolute;
-    width: 16px;
-    height: 16px;
+    width: 16px; height: 16px;
     background: var(--bg);
     border-radius: 50%;
     left: -8px;
@@ -360,12 +453,7 @@
     font-weight: 600;
     margin-bottom: 4px;
   }
-
-  .stub-rider-name {
-    font-size: 13px;
-    font-weight: 600;
-    text-align: center;
-  }
+  .stub-rider-name { font-size: 13px; font-weight: 600; text-align: center; }
 </style>
 </head>
 <body>
@@ -378,91 +466,123 @@
     <span class="brand-name">PinPoint</span>
     <span class="brand-tag">Business Dashboard</span>
   </div>
-  <div class="header-right">
-    <span><span class="status-dot"></span>Connected</span>
-  </div>
+  <div class="header-right"><span class="status-dot"></span>Connected</div>
 </header>
 
-<div class="layout">
-  <!-- Add Rider + Create Delivery -->
-  <div>
-    <div class="panel-title">Add Rider</div>
-    <div class="form-card" style="margin-bottom: 32px;">
-      <form id="rider-form">
-        <div class="field">
-          <label for="rider_name">Rider name</label>
-          <input type="text" id="rider_name" required placeholder="e.g. Ifeanyi Obi">
-        </div>
-        <div class="field">
-          <label for="rider_email">Rider email</label>
-          <input type="email" id="rider_email" required placeholder="rider@email.com">
-        </div>
-        <div class="field-row">
-          <div class="field">
-            <label for="rider_phone">Phone</label>
-            <input type="tel" id="rider_phone" placeholder="080X XXX XXXX">
-          </div>
-          <div class="field">
-            <label for="rider_vehicle">Vehicle</label>
-            <select id="rider_vehicle">
-              <option value="bike">Bike</option>
-              <option value="car">Car</option>
-              <option value="foot">On foot</option>
-            </select>
-          </div>
-        </div>
-        <button type="submit" class="submit-btn" id="rider-submit-btn">Add rider &amp; send invite</button>
-        <div class="form-msg" id="rider-form-msg"></div>
-        <div id="rider-whatsapp-container"></div>
-      </form>
-    </div>
+<div class="page">
 
-    <div class="panel-title">Create Delivery</div>
-    <div class="form-card">
-      <form id="delivery-form">
-        <div class="field">
-          <label for="customer_name">Customer name</label>
-          <input type="text" id="customer_name" required placeholder="e.g. Chioma Okafor">
-        </div>
-        <div class="field">
-          <label for="customer_phone">Customer phone</label>
-          <input type="tel" id="customer_phone" required placeholder="080X XXX XXXX">
-        </div>
-        <div class="field">
-          <label for="package_description">Package description</label>
-          <textarea id="package_description" placeholder="What's being delivered?"></textarea>
-        </div>
-        <div class="field">
-          <label for="pickup_address">Pickup address</label>
-          <input type="text" id="pickup_address" required placeholder="Where the rider collects it">
-        </div>
-        <div class="field">
-          <label for="destination_address">Destination address</label>
-          <input type="text" id="destination_address" required placeholder="Where it's going">
-        </div>
-        <div class="field">
-          <label for="rider_id">Assign rider</label>
-          <select id="rider_id" required>
-            <option value="">Loading riders…</option>
-          </select>
-        </div>
-        <button type="submit" class="submit-btn" id="submit-btn">Create delivery</button>
-        <div class="form-msg" id="form-msg"></div>
-        <div id="delivery-whatsapp-container"></div>
-      </form>
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon blue"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"/></svg></div>
+      <div class="stat-value" id="stat-total">0</div>
+      <div class="stat-label">Total deliveries</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon amber"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M12 8v4l3 3M12 2a10 10 0 100 20 10 10 0 000-20z"/></svg></div>
+      <div class="stat-value" id="stat-active">0</div>
+      <div class="stat-label">Active now</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon green"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M9 12l2 2 4-4M12 2a10 10 0 100 20 10 10 0 000-20z"/></svg></div>
+      <div class="stat-value" id="stat-delivered">0</div>
+      <div class="stat-label">Delivered</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon slate"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg></div>
+      <div class="stat-value" id="stat-riders">0</div>
+      <div class="stat-label">Riders</div>
     </div>
   </div>
 
-  <!-- Deliveries List -->
-  <div>
-    <div class="deliveries-header">
-      <div class="panel-title" style="margin-bottom:0;">Deliveries</div>
-      <span class="delivery-count" id="delivery-count">0 total</span>
+  <div class="layout">
+    <div>
+      <div class="tab-card">
+        <div class="tab-switch">
+          <button class="tab-btn active" data-tab="delivery-tab">Create Delivery</button>
+          <button class="tab-btn" data-tab="rider-tab">Add Rider</button>
+        </div>
+
+        <div class="tab-panel active" id="delivery-tab">
+          <form id="delivery-form">
+            <div class="field">
+              <label for="customer_name">Customer name</label>
+              <input type="text" id="customer_name" required placeholder="e.g. Chioma Okafor">
+            </div>
+            <div class="field">
+              <label for="customer_phone">Customer phone</label>
+              <input type="tel" id="customer_phone" required placeholder="080X XXX XXXX">
+            </div>
+            <div class="field">
+              <label for="package_description">Package description</label>
+              <textarea id="package_description" placeholder="What's being delivered?"></textarea>
+            </div>
+            <div class="field">
+              <label for="pickup_address">Pickup address</label>
+              <input type="text" id="pickup_address" required placeholder="Where the rider collects it">
+            </div>
+            <div class="field">
+              <label for="destination_address">Destination address</label>
+              <input type="text" id="destination_address" required placeholder="Where it's going">
+            </div>
+            <div class="field">
+              <label for="rider_id">Assign rider</label>
+              <select id="rider_id" required>
+                <option value="">Loading riders…</option>
+              </select>
+            </div>
+            <button type="submit" class="submit-btn" id="submit-btn">Create delivery</button>
+            <div class="form-msg" id="form-msg"></div>
+            <div id="delivery-whatsapp-container"></div>
+          </form>
+        </div>
+
+        <div class="tab-panel" id="rider-tab">
+          <form id="rider-form">
+            <div class="field">
+              <label for="rider_name">Rider name</label>
+              <input type="text" id="rider_name" required placeholder="e.g. Ifeanyi Obi">
+            </div>
+            <div class="field">
+              <label for="rider_email">Rider email</label>
+              <input type="email" id="rider_email" required placeholder="rider@email.com">
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="rider_phone">Phone</label>
+                <input type="tel" id="rider_phone" placeholder="080X XXX XXXX">
+              </div>
+              <div class="field">
+                <label for="rider_vehicle">Vehicle</label>
+                <select id="rider_vehicle">
+                  <option value="bike">Bike</option>
+                  <option value="car">Car</option>
+                  <option value="foot">On foot</option>
+                </select>
+              </div>
+            </div>
+            <button type="submit" class="submit-btn" id="rider-submit-btn">Add rider &amp; send invite</button>
+            <div class="form-msg" id="rider-form-msg"></div>
+            <div id="rider-whatsapp-container"></div>
+          </form>
+        </div>
+      </div>
+
+      <div class="panel-title">Your Riders</div>
+      <div class="riders-panel" id="riders-panel">
+        <div style="font-size:13px; color:var(--slate-light);">Loading riders…</div>
+      </div>
     </div>
-    <div id="deliveries-list">
-      <div class="empty-state">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2C7.58 2 4 5.58 4 10c0 5.25 8 12 8 12s8-6.75 8-12c0-4.42-3.58-8-8-8z"/><circle cx="12" cy="10" r="3"/></svg>
-        <p>No deliveries yet. Create one to get started.</p>
+
+    <div>
+      <div class="deliveries-header">
+        <div class="panel-title" style="margin-bottom:0;">Deliveries</div>
+        <span class="delivery-count" id="delivery-count">0 total</span>
+      </div>
+      <div id="deliveries-list">
+        <div class="empty-state">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2C7.58 2 4 5.58 4 10c0 5.25 8 12 8 12s8-6.75 8-12c0-4.42-3.58-8-8-8z"/><circle cx="12" cy="10" r="3"/></svg>
+          <p>No deliveries yet. Create one to get started.</p>
+        </div>
       </div>
     </div>
   </div>
@@ -474,9 +594,17 @@
   const SUPABASE_ANON_KEY = 'sb_publishable_3XEbw4-lAFfIVgG-haVbGQ_Q2305QI7';
   // =============================
 
-
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: { flowType: 'implicit' }
+  });
+
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(btn.dataset.tab).classList.add('active');
+    });
   });
 
   const riderSelect = document.getElementById('rider_id');
@@ -485,6 +613,7 @@
   const formMsg = document.getElementById('form-msg');
   const deliveriesList = document.getElementById('deliveries-list');
   const deliveryCount = document.getElementById('delivery-count');
+  const ridersPanel = document.getElementById('riders-panel');
 
   const statusLabels = {
     created: 'Created',
@@ -510,9 +639,6 @@
     return `PPD-${num}`;
   }
 
-  // Free geocoding via OpenStreetMap's Nominatim service — converts a
-  // typed address into lat/lng coordinates, needed for maps, distance
-  // and wrong-direction detection on the customer page.
   async function geocodeAddress(address) {
     try {
       const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(address + ', Nigeria')}`;
@@ -527,11 +653,9 @@
     return null;
   }
 
-  // Converts a local Nigerian number (e.g. 080X XXX XXXX) into WhatsApp's
-  // required international format (234XXXXXXXXXX, no +, no spaces)
   function toWhatsAppNumber(phone) {
     if (!phone) return null;
-    let digits = phone.replace(/\D/g, ''); // strip everything but digits
+    let digits = phone.replace(/\D/g, '');
     if (digits.startsWith('0')) {
       digits = '234' + digits.slice(1);
     } else if (!digits.startsWith('234')) {
@@ -540,32 +664,45 @@
     return digits;
   }
 
-  function whatsappButton(phone, message) {
+  function whatsappButton(phone, message, label) {
     const number = toWhatsAppNumber(phone);
     if (!number) return '';
     const url = `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
     return `
       <a href="${url}" target="_blank" class="whatsapp-btn">
         <svg viewBox="0 0 24 24"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21h.01c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0012.04 2m0 1.67c2.2 0 4.26.86 5.82 2.42a8.225 8.225 0 012.41 5.83c0 4.54-3.7 8.23-8.24 8.23-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.188 8.188 0 01-1.25-4.37c0-4.54 3.7-8.25 8.25-8.25M8.53 7.33c-.16 0-.43.06-.66.31-.22.25-.86.84-.86 2.05 0 1.21.88 2.38 1 2.54.12.17 1.74 2.67 4.28 3.74.6.26 1.06.41 1.42.52.6.19 1.14.16 1.57.1.48-.07 1.46-.6 1.67-1.18.21-.58.21-1.07.15-1.18-.06-.1-.23-.17-.48-.29-.25-.13-1.46-.72-1.69-.8-.23-.08-.39-.13-.56.13-.16.25-.64.8-.78.97-.15.16-.29.18-.54.06-.25-.13-1.05-.39-2-1.24-.74-.66-1.24-1.47-1.39-1.72-.14-.25-.01-.38.11-.5.11-.11.25-.29.37-.44.12-.14.16-.25.24-.41.08-.17.04-.31-.02-.44-.06-.13-.56-1.36-.78-1.85-.2-.48-.41-.42-.56-.43-.15-.01-.32-.01-.48-.01z"/></svg>
-        Send via WhatsApp
+        ${label || 'Send via WhatsApp'}
       </a>`;
   }
 
   let ridersData = [];
 
   async function loadRiders() {
-    const { data, error } = await supabaseClient.from('riders').select('id, name, vehicle_type, email');
-    if (error) {
-      riderSelect.innerHTML = '<option value="">Could not load riders</option>';
-      return;
-    }
-    if (!data || data.length === 0) {
+    const { data, error } = await supabaseClient.from('riders').select('id, name, vehicle_type, email, phone, status');
+
+    if (error || !data || data.length === 0) {
       riderSelect.innerHTML = '<option value="">No riders yet — add one first</option>';
+      ridersPanel.innerHTML = `<div style="font-size:13px; color:var(--slate-light); text-align:center; padding: 10px 0;">No riders added yet.</div>`;
+      document.getElementById('stat-riders').textContent = '0';
       return;
     }
+
     ridersData = data;
+    document.getElementById('stat-riders').textContent = data.length;
+
     riderSelect.innerHTML = '<option value="">Select a rider</option>' +
       data.map(r => `<option value="${r.id}">${r.name}${r.vehicle_type ? ' · ' + r.vehicle_type : ''}</option>`).join('');
+
+    ridersPanel.innerHTML = data.map(r => `
+      <div class="rider-row">
+        <div class="rider-avatar">${r.name.charAt(0).toUpperCase()}</div>
+        <div class="rider-info">
+          <div class="rider-info-name">${r.name}</div>
+          <div class="rider-info-meta">${r.vehicle_type || ''}${r.email ? ' · ' + r.email : ''}</div>
+        </div>
+        <span class="rider-status-pill">${r.status || 'offline'}</span>
+      </div>
+    `).join('');
   }
 
   async function loadDeliveries() {
@@ -581,10 +718,16 @@
           <p>No deliveries yet. Create one to get started.</p>
         </div>`;
       deliveryCount.textContent = '0 total';
+      document.getElementById('stat-total').textContent = '0';
+      document.getElementById('stat-active').textContent = '0';
+      document.getElementById('stat-delivered').textContent = '0';
       return;
     }
 
     deliveryCount.textContent = `${data.length} total`;
+    document.getElementById('stat-total').textContent = data.length;
+    document.getElementById('stat-delivered').textContent = data.filter(d => d.status === 'delivered').length;
+    document.getElementById('stat-active').textContent = data.filter(d => d.status !== 'delivered').length;
 
     deliveriesList.innerHTML = '<div class="stub-grid">' + data.map(d => `
       <div class="stub">
@@ -653,23 +796,30 @@
 
       const trackingUrl = `${window.location.origin}/customer.html?code=${payload.delivery_code}`;
       const waMessage = `Hi ${payload.customer_name}, your delivery (${payload.delivery_code}) is on the way! Track it live here: ${trackingUrl}`;
-      document.getElementById('delivery-whatsapp-container').innerHTML = whatsappButton(payload.customer_phone, waMessage);
+      document.getElementById('delivery-whatsapp-container').innerHTML = whatsappButton(payload.customer_phone, waMessage, 'Send tracking link to customer');
 
       form.reset();
       loadDeliveries();
 
-      // Notify the assigned rider by sending them a sign-in link
       const assignedRider = ridersData.find(r => r.id === payload.rider_id);
-      if (assignedRider && assignedRider.email) {
-        await supabaseClient.auth.signInWithOtp({
-          email: assignedRider.email,
-          options: { emailRedirectTo: window.location.origin + '/rider.html' }
-        });
+      if (assignedRider) {
+        if (assignedRider.email) {
+          await supabaseClient.auth.signInWithOtp({
+            email: assignedRider.email,
+            options: { emailRedirectTo: window.location.origin + '/rider.html' }
+          });
+        }
+        if (assignedRider.phone) {
+          const riderUrl = `${window.location.origin}/rider.html`;
+          const riderWaMessage = `Hi ${assignedRider.name}, you have a new PinPoint delivery (${payload.delivery_code}) for ${payload.customer_name}. Open your rider page to view and accept it: ${riderUrl}`;
+          const existing = document.getElementById('delivery-whatsapp-container').innerHTML;
+          document.getElementById('delivery-whatsapp-container').innerHTML =
+            existing + whatsappButton(assignedRider.phone, riderWaMessage, `Notify ${assignedRider.name} via WhatsApp`);
+        }
       }
     }
   });
 
-  // ---------- Add Rider ----------
   const riderForm = document.getElementById('rider-form');
   const riderSubmitBtn = document.getElementById('rider-submit-btn');
   const riderFormMsg = document.getElementById('rider-form-msg');
@@ -685,7 +835,6 @@
     const phone = document.getElementById('rider_phone').value;
     const vehicle_type = document.getElementById('rider_vehicle').value;
 
-    // 1. Insert the rider record
     const { error: insertError } = await supabaseClient
       .from('riders')
       .insert({ name, email, phone, vehicle_type, status: 'offline' });
@@ -698,12 +847,9 @@
       return;
     }
 
-    // 2. Send the magic link invite to the rider's email
     const { error: otpError } = await supabaseClient.auth.signInWithOtp({
       email,
-      options: {
-        emailRedirectTo: window.location.origin + '/rider.html'
-      }
+      options: { emailRedirectTo: window.location.origin + '/rider.html' }
     });
 
     riderSubmitBtn.disabled = false;
@@ -716,8 +862,8 @@
       riderFormMsg.textContent = `${name} added — invite sent to ${email}.`;
       riderFormMsg.className = 'form-msg success';
 
-      const waMessage = `Hi ${name}, you've been added as a rider on PinPoint! Check your email (${email}) for a sign-in link to view your deliveries.`;
-      document.getElementById('rider-whatsapp-container').innerHTML = whatsappButton(phone, waMessage);
+      const waMessage = `Hi ${name}, you've been added as a rider on PinPoint! Check your email (${email}) for a sign-in link, or tap here to sign in: ${window.location.origin}/rider.html`;
+      document.getElementById('rider-whatsapp-container').innerHTML = whatsappButton(phone, waMessage, 'Send invite via WhatsApp');
 
       riderForm.reset();
     }
@@ -728,8 +874,7 @@
   loadRiders();
   loadDeliveries();
 
-  // Refresh delivery list every 5s so status changes from rider/customer pages show up
-  setInterval(loadDeliveries, 5000);
+  setInterval(() => { loadDeliveries(); loadRiders(); }, 5000);
 </script>
 
 </body>

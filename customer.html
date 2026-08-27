@@ -258,6 +258,25 @@
     line-height: 1.5;
   }
   .route-text .label { color: var(--slate-light); }
+
+  .whatsapp-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 12px;
+    background: #25D366;
+    color: #fff;
+    border-radius: 9px;
+    font-size: 14px;
+    font-weight: 600;
+    margin-top: 10px;
+    text-decoration: none;
+    box-shadow: 0 2px 8px rgba(37, 211, 102, 0.25);
+  }
+  .whatsapp-btn:hover { background: #1EBE59; }
+  .whatsapp-btn svg { width: 17px; height: 17px; fill: #fff; flex-shrink: 0; }
 </style>
 </head>
 <body>
@@ -274,10 +293,10 @@
 </div>
 
 <script>
-  // ====== CONFIGURE THIS ======
-  const SUPABASE_URL = 'https://wtxikghyylclqnhxfcvu.supabase.co';
-  const SUPABASE_ANON_KEY = 'sb_publishable_3XEbw4-lAFfIVgG-haVbGQ_Q2305QI7';
-  // =============================
+  // ====== CONFIGURE THIS (same project as business.html / rider.html) ======
+  const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+  const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+  // ============================================================================
 
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -308,6 +327,28 @@
     if (d.tracking_approved) return 'live';
     if (d.status === 'assigned') return 'assigned';
     return 'accepted';
+  }
+
+  function toWhatsAppNumber(phone) {
+    if (!phone) return null;
+    let digits = phone.replace(/\D/g, '');
+    if (digits.startsWith('0')) {
+      digits = '234' + digits.slice(1);
+    } else if (!digits.startsWith('234')) {
+      digits = '234' + digits;
+    }
+    return digits;
+  }
+
+  function whatsappButton(phone, message, label) {
+    const number = toWhatsAppNumber(phone);
+    if (!number) return '';
+    const url = `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
+    return `
+      <a href="${url}" target="_blank" class="whatsapp-btn">
+        <svg viewBox="0 0 24 24"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21h.01c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0012.04 2m0 1.67c2.2 0 4.26.86 5.82 2.42a8.225 8.225 0 012.41 5.83c0 4.54-3.7 8.23-8.24 8.23-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.188 8.188 0 01-1.25-4.37c0-4.54 3.7-8.25 8.25-8.25M8.53 7.33c-.16 0-.43.06-.66.31-.22.25-.86.84-.86 2.05 0 1.21.88 2.38 1 2.54.12.17 1.74 2.67 4.28 3.74.6.26 1.06.41 1.42.52.6.19 1.14.16 1.57.1.48-.07 1.46-.6 1.67-1.18.21-.58.21-1.07.15-1.18-.06-.1-.23-.17-.48-.29-.25-.13-1.46-.72-1.69-.8-.23-.08-.39-.13-.56.13-.16.25-.64.8-.78.97-.15.16-.29.18-.54.06-.25-.13-1.05-.39-2-1.24-.74-.66-1.24-1.47-1.39-1.72-.14-.25-.01-.38.11-.5.11-.11.25-.29.37-.44.12-.14.16-.25.24-.41.08-.17.04-.31-.02-.44-.06-.13-.56-1.36-.78-1.85-.2-.48-.41-.42-.56-.43-.15-.01-.32-.01-.48-.01z"/></svg>
+        ${label || 'Send via WhatsApp'}
+      </a>`;
   }
 
   // ---------- Distance / geo helpers ----------
@@ -346,7 +387,7 @@
 
     const { data, error } = await supabaseClient
       .from('deliveries')
-      .select('*, riders(name, photo_url, vehicle_type)')
+      .select('*, riders(name, photo_url, vehicle_type, phone)')
       .eq('delivery_code', deliveryCode)
       .limit(1);
 
@@ -366,7 +407,7 @@
   async function refreshDeliveryStatus() {
     const { data } = await supabaseClient
       .from('deliveries')
-      .select('*, riders(name, photo_url, vehicle_type)')
+      .select('*, riders(name, photo_url, vehicle_type, phone)')
       .eq('delivery_code', deliveryCode)
       .limit(1);
     if (data && data.length > 0) {
@@ -453,7 +494,14 @@
     }
 
     if (delivery.tracking_requested) {
-      actionArea.innerHTML = `<div class="waiting-note">Waiting for the rider to approve live tracking…</div>`;
+      const rider = delivery.riders || {};
+      let waHtml = '';
+      if (rider.phone) {
+        const riderUrl = `${window.location.origin}/rider.html`;
+        const message = `Hi ${rider.name || ''}, ${delivery.customer_name} wants to view your live location for delivery ${delivery.delivery_code}. Open your rider page to approve: ${riderUrl}`;
+        waHtml = whatsappButton(rider.phone, message, `Notify ${rider.name || 'rider'} via WhatsApp`);
+      }
+      actionArea.innerHTML = `<div class="waiting-note">Waiting for the rider to approve live tracking…</div>${waHtml}`;
       return;
     }
 
