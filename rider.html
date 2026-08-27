@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PinPoint — Rider</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --bg: #FAFBFC;
+    --surface: #FFFFFF;
+    --ink: #0F172A;
+    --slate: #64748B;
+    --slate-light: #94A3B8;
+    --border: #E5E9F0;
+    --primary: #2454FF;
+    --primary-dark: #1A3FD1;
+    --primary-tint: #EEF2FF;
+    --live: #00C896;
+    --live-tint: #E6FBF4;
+    --warn: #F59E0B;
+    --warn-tint: #FFF7E6;
+    --radius: 16px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+
+  h1, h2, h3, .display {
+    font-family: 'Space Grotesk', sans-serif;
+    letter-spacing: -0.01em;
+  }
+
+  .mono { font-family: 'JetBrains Mono', monospace; }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .brand { display: flex; align-items: center; gap: 10px; }
+
+  .brand-mark {
+    width: 32px; height: 32px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, var(--primary), #5B7FFF);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .brand-mark svg { width: 17px; height: 17px; }
+
+  .brand-name { font-size: 17px; font-weight: 700; }
+
+  .brand-tag {
+    font-size: 12px;
+    color: var(--slate);
+    font-weight: 500;
+    padding-left: 10px;
+    margin-left: 10px;
+    border-left: 1px solid var(--border);
+  }
+
+  .rider-chip {
+    font-size: 13px;
+    color: var(--slate);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .status-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--live);
+    display: inline-block;
+    box-shadow: 0 0 0 3px var(--live-tint);
+  }
+
+  .container {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 28px 20px 60px;
+  }
+
+  /* ---------- Sign in card ---------- */
+  .signin-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 32px 26px;
+    margin-top: 60px;
+    text-align: center;
+  }
+
+  .signin-card .icon-circle {
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    background: var(--primary-tint);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 18px;
+  }
+
+  .signin-card h2 { font-size: 20px; margin-bottom: 8px; }
+  .signin-card p { font-size: 14px; color: var(--slate); margin-bottom: 22px; line-height: 1.5; }
+
+  input {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 9px;
+    font-size: 14px;
+    font-family: 'Inter', sans-serif;
+    margin-bottom: 12px;
+  }
+
+  input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-tint);
+  }
+
+  .btn-primary {
+    width: 100%;
+    padding: 13px;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: 9px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn-primary:hover { background: var(--primary-dark); }
+  .btn-primary:disabled { background: var(--slate-light); cursor: not-allowed; }
+
+  .btn-secondary {
+    width: 100%;
+    padding: 13px;
+    background: var(--surface);
+    color: var(--ink);
+    border: 1.5px solid var(--border);
+    border-radius: 9px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .form-msg {
+    font-size: 13px;
+    margin-top: 12px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    display: none;
+    text-align: left;
+  }
+  .form-msg.success { display: block; background: var(--live-tint); color: #067A5C; }
+  .form-msg.error { display: block; background: #FEF2F2; color: #B91C1C; }
+
+  /* ---------- Delivery cards ---------- */
+  .section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--slate);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 24px 0 14px;
+  }
+
+  .delivery-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px;
+    margin-bottom: 16px;
+  }
+
+  .delivery-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .delivery-code { font-size: 13px; color: var(--slate); }
+
+  .tag {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 100px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .tag.assigned { background: #FFF7E6; color: #B7791F; }
+  .tag.accepted { background: var(--primary-tint); color: var(--primary); }
+  .tag.live { background: var(--live-tint); color: #067A5C; }
+  .tag.delivered { background: #F1F5F9; color: var(--slate); }
+
+  .delivery-customer { font-size: 17px; font-weight: 600; margin-bottom: 6px; }
+
+  .delivery-route {
+    font-size: 13px;
+    color: var(--slate);
+    margin-bottom: 16px;
+    line-height: 1.5;
+  }
+  .delivery-route .label { color: var(--slate-light); }
+
+  .action-btn {
+    width: 100%;
+    padding: 12px;
+    border-radius: 9px;
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    margin-bottom: 8px;
+  }
+  .action-btn.accept { background: var(--primary); color: #fff; }
+  .action-btn.accept:hover { background: var(--primary-dark); }
+  .action-btn.finish { background: var(--ink); color: #fff; }
+
+  /* ---------- Consent banner ---------- */
+  .consent-banner {
+    background: var(--warn-tint);
+    border: 1.5px solid #F3D9A8;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+
+  .consent-banner p {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: #92620A;
+  }
+
+  .consent-actions { display: flex; gap: 10px; }
+
+  .consent-btn {
+    flex: 1;
+    padding: 10px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+  }
+  .consent-btn.allow { background: var(--live); color: #fff; }
+  .consent-btn.decline { background: #fff; color: var(--slate); border: 1.5px solid var(--border); }
+
+  /* ---------- Live tracking indicator ---------- */
+  .live-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #067A5C;
+    background: var(--live-tint);
+    padding: 10px 14px;
+    border-radius: 9px;
+    margin-bottom: 12px;
+  }
+
+  .pulse-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--live);
+    animation: pulse 1.6s infinite;
+  }
+
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(0, 200, 150, 0.5); }
+    70% { box-shadow: 0 0 0 8px rgba(0, 200, 150, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(0, 200, 150, 0); }
+  }
+
+  .empty-state {
+    border: 1.5px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 50px 24px;
+    text-align: center;
+    color: var(--slate);
+    font-size: 14px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="brand-mark">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 2C7.58 2 4 5.58 4 10c0 5.25 8 12 8 12s8-6.75 8-12c0-4.42-3.58-8-8-8z" fill="white"/><circle cx="12" cy="10" r="3" fill="#2454FF"/></svg>
+    </div>
+    <span class="brand-name">PinPoint</span>
+    <span class="brand-tag">Rider</span>
+  </div>
+  <div class="rider-chip" id="rider-chip" style="display:none;">
+    <span class="status-dot"></span>
+    <span id="rider-email-label"></span>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- Sign-in view -->
+  <div id="signin-view" style="display:none;">
+    <div class="signin-card">
+      <div class="icon-circle">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2454FF" stroke-width="2" stroke-linecap="round"><path d="M4 4h16v16H4z" opacity="0"/><path d="M22 6l-10 7L2 6"/><path d="M2 6h20v12H2z"/></svg>
+      </div>
+      <h2>Sign in to PinPoint</h2>
+      <p>Enter your email and we'll send you a sign-in link. No password needed.</p>
+      <form id="signin-form">
+        <input type="email" id="signin-email" required placeholder="you@email.com">
+        <button type="submit" class="btn-primary" id="signin-btn">Send sign-in link</button>
+      </form>
+      <div class="form-msg" id="signin-msg"></div>
+    </div>
+  </div>
+
+  <!-- Signed-in view -->
+  <div id="app-view" style="display:none;">
+    <div class="section-title">My Deliveries</div>
+    <div id="deliveries-container">
+      <div class="empty-state">Loading your deliveries…</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // ====== CONFIGURE THIS ======
+  const SUPABASE_URL = 'https://wtxikghyylclqnhxfcvu.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_3XEbw4-lAFfIVgG-haVbGQ_Q2305QI7';
+  // =============================
+
+
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: { flowType: 'implicit' }
+  });
+
+  const signinView = document.getElementById('signin-view');
+  const appView = document.getElementById('app-view');
+  const riderChip = document.getElementById('rider-chip');
+  const riderEmailLabel = document.getElementById('rider-email-label');
+  const deliveriesContainer = document.getElementById('deliveries-container');
+  const signinForm = document.getElementById('signin-form');
+  const signinBtn = document.getElementById('signin-btn');
+  const signinMsg = document.getElementById('signin-msg');
+
+  let currentRider = null;
+  let watchId = null;
+  let refreshTimer = null;
+
+  const statusLabels = {
+    assigned: 'Assigned',
+    accepted: 'Accepted',
+    tracking_requested: 'Tracking requested',
+    tracking_approved: 'Tracking live',
+    picked_up: 'Picked up',
+    in_transit: 'In transit',
+    arriving: 'Arriving',
+    delivered: 'Delivered'
+  };
+
+  function tagClass(d) {
+    if (d.status === 'delivered') return 'delivered';
+    if (d.tracking_approved || ['picked_up', 'in_transit', 'arriving'].includes(d.status)) return 'live';
+    if (d.status === 'assigned') return 'assigned';
+    return 'accepted';
+  }
+
+  // ---------- Auth ----------
+  signinForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    signinBtn.disabled = true;
+    signinBtn.textContent = 'Sending…';
+    signinMsg.className = 'form-msg';
+
+    const email = document.getElementById('signin-email').value;
+    const { error } = await supabaseClient.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: window.location.origin + '/rider.html' }
+    });
+
+    signinBtn.disabled = false;
+    signinBtn.textContent = 'Send sign-in link';
+
+    if (error) {
+      signinMsg.textContent = 'Could not send link: ' + error.message;
+      signinMsg.className = 'form-msg error';
+    } else {
+      signinMsg.textContent = `Link sent to ${email}. Check your inbox.`;
+      signinMsg.className = 'form-msg success';
+      signinForm.reset();
+    }
+  });
+
+  async function handleSignedIn(session) {
+    const email = session.user.email;
+    riderEmailLabel.textContent = email;
+    riderChip.style.display = 'flex';
+    signinView.style.display = 'none';
+    appView.style.display = 'block';
+
+    // Find the rider record matching this email
+    const { data: riderRows, error: riderError } = await supabaseClient
+      .from('riders')
+      .select('*')
+      .eq('email', email)
+      .limit(1);
+
+    if (riderError || !riderRows || riderRows.length === 0) {
+      deliveriesContainer.innerHTML = `<div class="empty-state">We couldn't find a rider profile for ${email}. Ask the business to add you first.</div>`;
+      return;
+    }
+
+    currentRider = riderRows[0];
+    loadDeliveries();
+    if (refreshTimer) clearInterval(refreshTimer);
+    refreshTimer = setInterval(loadDeliveries, 4000);
+  }
+
+  function handleSignedOut() {
+    signinView.style.display = 'block';
+    appView.style.display = 'none';
+    riderChip.style.display = 'none';
+    if (refreshTimer) clearInterval(refreshTimer);
+    if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+  }
+
+  // ---------- Deliveries ----------
+  async function loadDeliveries() {
+    if (!currentRider) return;
+
+    const { data, error } = await supabaseClient
+      .from('deliveries')
+      .select('*')
+      .eq('rider_id', currentRider.id)
+      .neq('status', 'delivered')
+      .order('created_at', { ascending: false });
+
+    if (error || !data || data.length === 0) {
+      deliveriesContainer.innerHTML = `<div class="empty-state">No active deliveries right now.</div>`;
+      return;
+    }
+
+    deliveriesContainer.innerHTML = data.map(d => renderDeliveryCard(d)).join('');
+    attachCardHandlers(data);
+
+    // If any delivery has tracking approved, make sure GPS streaming is running
+    const trackingDelivery = data.find(d => d.tracking_approved);
+    if (trackingDelivery) {
+      startTracking(trackingDelivery.id);
+    }
+  }
+
+  function renderDeliveryCard(d) {
+    let actionsHtml = '';
+
+    if (d.status === 'assigned') {
+      actionsHtml += `<button class="action-btn accept" data-action="accept" data-id="${d.id}">Accept delivery</button>`;
+    }
+
+    if (d.tracking_requested && !d.tracking_approved) {
+      actionsHtml += `
+        <div class="consent-banner">
+          <p>${d.customer_name} wants to view your live location.</p>
+          <div class="consent-actions">
+            <button class="consent-btn allow" data-action="allow" data-id="${d.id}">Allow</button>
+            <button class="consent-btn decline" data-action="decline" data-id="${d.id}">Decline</button>
+          </div>
+        </div>`;
+    }
+
+    if (d.tracking_approved && d.status !== 'delivered') {
+      actionsHtml += `
+        <div class="live-indicator"><span class="pulse-dot"></span>Sharing live location</div>
+        <button class="action-btn finish" data-action="deliver" data-id="${d.id}">Mark as delivered</button>`;
+    } else if (d.status === 'accepted') {
+      actionsHtml += `<div class="empty-state" style="padding:16px; font-size:13px;">Waiting for customer to request tracking…</div>`;
+    }
+
+    return `
+      <div class="delivery-card">
+        <div class="delivery-top">
+          <span class="delivery-code mono">${d.delivery_code}</span>
+          <span class="tag ${tagClass(d)}">${statusLabels[d.status] || d.status}</span>
+        </div>
+        <div class="delivery-customer">${d.customer_name}</div>
+        <div class="delivery-route">
+          <span class="label">Pickup:</span> ${d.pickup_address}<br>
+          <span class="label">Destination:</span> ${d.destination_address}
+        </div>
+        ${actionsHtml}
+      </div>`;
+  }
+
+  function attachCardHandlers(deliveries) {
+    deliveriesContainer.querySelectorAll('[data-action]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-id');
+        const action = btn.getAttribute('data-action');
+        btn.disabled = true;
+
+        if (action === 'accept') {
+          await supabaseClient.from('deliveries').update({ status: 'accepted' }).eq('id', id);
+        } else if (action === 'allow') {
+          await supabaseClient.from('deliveries').update({ tracking_approved: true, status: 'tracking_approved' }).eq('id', id);
+        } else if (action === 'decline') {
+          await supabaseClient.from('deliveries').update({ tracking_requested: false }).eq('id', id);
+        } else if (action === 'deliver') {
+          await supabaseClient.from('deliveries').update({ status: 'delivered', tracking_approved: false }).eq('id', id);
+          if (watchId !== null) {
+            navigator.geolocation.clearWatch(watchId);
+            watchId = null;
+          }
+        }
+
+        loadDeliveries();
+      });
+    });
+  }
+
+  // ---------- GPS streaming ----------
+  function startTracking(deliveryId) {
+    if (watchId !== null) return; // already tracking
+    if (!navigator.geolocation) return;
+
+    watchId = navigator.geolocation.watchPosition(
+      async (position) => {
+        const { latitude, longitude, heading, speed, accuracy } = position.coords;
+        await supabaseClient.from('location_pings').insert({
+          delivery_id: deliveryId,
+          rider_id: currentRider.id,
+          lat: latitude,
+          lng: longitude,
+          heading: heading,
+          speed: speed,
+          accuracy: accuracy
+        });
+      },
+      (err) => {
+        console.error('Geolocation error:', err);
+      },
+      { enableHighAccuracy: true, maximumAge: 3000, timeout: 15000 }
+    );
+  }
+
+  // ---------- Boot ----------
+  supabaseClient.auth.onAuthStateChange((event, session) => {
+    if (session) {
+      handleSignedIn(session);
+    } else {
+      handleSignedOut();
+    }
+  });
+
+  supabaseClient.auth.getSession().then(({ data: { session } }) => {
+    if (session) {
+      handleSignedIn(session);
+    } else {
+      handleSignedOut();
+    }
+  });
+</script>
+
+</body>
+</html>
