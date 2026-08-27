@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
   :root {
     --bg: #F6F7FA;
@@ -454,6 +456,106 @@
     margin-bottom: 4px;
   }
   .stub-rider-name { font-size: 13px; font-weight: 600; text-align: center; }
+
+  /* ---------- Location pickers ---------- */
+  .picker-hint {
+    font-size: 12px;
+    color: var(--slate-light);
+    margin: -10px 0 10px;
+  }
+
+  .address-search-wrap { position: relative; }
+
+  .address-suggestions {
+    position: absolute;
+    top: calc(100% + 2px);
+    left: 0; right: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: var(--shadow-lg);
+    z-index: 30;
+    max-height: 180px;
+    overflow-y: auto;
+    display: none;
+  }
+  .address-suggestions.visible { display: block; }
+
+  .address-suggestion-item {
+    padding: 10px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .address-suggestion-item:last-child { border-bottom: none; }
+  .address-suggestion-item:hover { background: var(--primary-tint); }
+  .address-suggestion-item svg { width: 13px; height: 13px; stroke: var(--slate-light); flex-shrink: 0; }
+
+  .mini-map {
+    width: 100%;
+    height: 160px;
+    border-radius: 10px;
+    border: 1.5px solid var(--border);
+    margin-bottom: 16px;
+    background: #E5E9F0;
+  }
+
+  .pin-marker {
+    width: 26px; height: 26px;
+    border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  }
+  .pin-marker.pickup { background: var(--ink); }
+  .pin-marker.destination { background: var(--live); }
+  .pin-marker svg { transform: rotate(45deg); width: 12px; height: 12px; }
+
+  .distance-preview {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--primary-tint);
+    color: var(--primary);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 10px 14px;
+    border-radius: 9px;
+    margin-bottom: 16px;
+  }
+
+  .rider-photo-upload {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .photo-preview {
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    background: var(--primary-tint);
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+    border: 1.5px solid var(--border);
+  }
+  .photo-preview img { width: 100%; height: 100%; object-fit: cover; }
+  .photo-preview svg { width: 22px; height: 22px; stroke: var(--slate-light); }
+
+  .photo-upload-btn {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--primary);
+    background: var(--primary-tint);
+    padding: 9px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    border: none;
+  }
 </style>
 </head>
 <body>
@@ -518,11 +620,27 @@
             </div>
             <div class="field">
               <label for="pickup_address">Pickup address</label>
-              <input type="text" id="pickup_address" required placeholder="Where the rider collects it">
+              <div class="address-search-wrap">
+                <input type="text" id="pickup_address" required placeholder="Search a saved address, or type + pin below" autocomplete="off">
+                <div class="address-suggestions" id="pickup-suggestions"></div>
+              </div>
+              <div class="picker-hint">Not listed? Tap the map to drop an exact pin — we'll save it for next time</div>
+              <div class="mini-map" id="pickup-map"></div>
+              <input type="text" id="pickup_landmark" placeholder="Landmark (e.g. beside the blue kiosk)" style="margin-top:-6px;">
             </div>
             <div class="field">
               <label for="destination_address">Destination address</label>
-              <input type="text" id="destination_address" required placeholder="Where it's going">
+              <div class="address-search-wrap">
+                <input type="text" id="destination_address" required placeholder="Search a saved address, or type + pin below" autocomplete="off">
+                <div class="address-suggestions" id="destination-suggestions"></div>
+              </div>
+              <div class="picker-hint">Not listed? Tap the map to drop an exact pin — we'll save it for next time</div>
+              <div class="mini-map" id="destination-map"></div>
+              <input type="text" id="destination_landmark" placeholder="Landmark (e.g. opposite NNPC station)" style="margin-top:-6px;">
+            </div>
+            <div class="distance-preview" id="distance-preview" style="display:none;">
+              <span>Straight-line distance</span>
+              <span id="distance-preview-value">—</span>
             </div>
             <div class="field">
               <label for="rider_id">Assign rider</label>
@@ -538,6 +656,15 @@
 
         <div class="tab-panel" id="rider-tab">
           <form id="rider-form">
+            <div class="rider-photo-upload">
+              <div class="photo-preview" id="rider-photo-preview">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
+              </div>
+              <label class="photo-upload-btn">
+                Upload photo
+                <input type="file" id="rider_photo" accept="image/*" style="display:none;">
+              </label>
+            </div>
             <div class="field">
               <label for="rider_name">Rider name</label>
               <input type="text" id="rider_name" required placeholder="e.g. Ifeanyi Obi">
@@ -604,6 +731,7 @@
       document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
       btn.classList.add('active');
       document.getElementById(btn.dataset.tab).classList.add('active');
+      window.dispatchEvent(new Event('resize')); // nudges Leaflet maps to redraw correctly
     });
   });
 
@@ -637,6 +765,10 @@
   function generateDeliveryCode() {
     const num = Math.floor(100000 + Math.random() * 900000);
     return `PPD-${num}`;
+  }
+
+  function generateHandoffPin() {
+    return String(Math.floor(1000 + Math.random() * 9000)); // 4-digit code
   }
 
   async function geocodeAddress(address) {
@@ -698,6 +830,173 @@
   }
 
   let ridersData = [];
+  let manualPickup = null;      // { lat, lng } if business tapped the map
+  let manualDestination = null;
+
+  function haversineKm(lat1, lng1, lat2, lng2) {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2 +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLng / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  function updateDistancePreview() {
+    const preview = document.getElementById('distance-preview');
+    if (manualPickup && manualDestination) {
+      const km = haversineKm(manualPickup.lat, manualPickup.lng, manualDestination.lat, manualDestination.lng);
+      document.getElementById('distance-preview-value').textContent = km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`;
+      preview.style.display = 'flex';
+    } else {
+      preview.style.display = 'none';
+    }
+  }
+
+  function pinIcon(type) {
+    const color = type === 'pickup' ? '#0F172A' : '#00C896';
+    return L.divIcon({
+      html: `<div class="pin-marker ${type}"><svg viewBox="0 0 24 24" fill="white"><circle cx="12" cy="12" r="6"/></svg></div>`,
+      className: '',
+      iconSize: [26, 26],
+      iconAnchor: [13, 26]
+    });
+  }
+
+  let pickupMapInstance = null;
+  let destinationMapInstance = null;
+  let pickupMarkerRef = null;
+  let destinationMarkerRef = null;
+
+  function setPickerPoint(map, markerRefSetter, currentMarker, coords, type) {
+    if (currentMarker) {
+      currentMarker.setLatLng([coords.lat, coords.lng]);
+    } else {
+      currentMarker = L.marker([coords.lat, coords.lng], { icon: pinIcon(type), draggable: true }).addTo(map);
+      markerRefSetter(currentMarker);
+    }
+    map.setView([coords.lat, coords.lng], 15);
+    return currentMarker;
+  }
+
+  function setupAddressField(inputId, suggestionsId, mapId, type) {
+    const input = document.getElementById(inputId);
+    const suggestionsBox = document.getElementById(suggestionsId);
+    let debounceTimer = null;
+
+    const map = L.map(mapId, { zoomControl: false }).setView([6.2104, 7.0716], 11);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+    setTimeout(() => map.invalidateSize(), 300);
+
+    let marker = null;
+    const setCoords = (coords) => {
+      if (type === 'pickup') manualPickup = coords; else manualDestination = coords;
+      updateDistancePreview();
+    };
+
+    map.on('click', (e) => {
+      const { lat, lng } = e.latlng;
+      if (marker) {
+        marker.setLatLng([lat, lng]);
+      } else {
+        marker = L.marker([lat, lng], { icon: pinIcon(type), draggable: true }).addTo(map);
+        marker.on('dragend', () => {
+          const pos = marker.getLatLng();
+          setCoords({ lat: pos.lat, lng: pos.lng });
+        });
+      }
+      setCoords({ lat, lng });
+    });
+
+    if (type === 'pickup') { pickupMapInstance = map; } else { destinationMapInstance = map; }
+
+    // Search saved locations as the business types
+    input.addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      const term = input.value.trim();
+      if (type === 'pickup') manualPickup = null; else manualDestination = null; // typing invalidates a prior pin/selection
+      updateDistancePreview();
+
+      if (term.length < 2) {
+        suggestionsBox.classList.remove('visible');
+        return;
+      }
+
+      debounceTimer = setTimeout(async () => {
+        const { data } = await supabaseClient
+          .from('locations')
+          .select('id, name, lat, lng')
+          .ilike('name', `%${term}%`)
+          .limit(6);
+
+        if (!data || data.length === 0) {
+          suggestionsBox.classList.remove('visible');
+          return;
+        }
+
+        suggestionsBox.innerHTML = data.map(loc => `
+          <div class="address-suggestion-item" data-lat="${loc.lat}" data-lng="${loc.lng}" data-name="${loc.name.replace(/"/g, '&quot;')}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C7.58 2 4 5.58 4 10c0 5.25 8 12 8 12s8-6.75 8-12c0-4.42-3.58-8-8-8z"/><circle cx="12" cy="10" r="3"/></svg>
+            ${loc.name}
+          </div>
+        `).join('');
+        suggestionsBox.classList.add('visible');
+
+        suggestionsBox.querySelectorAll('.address-suggestion-item').forEach(item => {
+          item.addEventListener('click', () => {
+            const lat = parseFloat(item.dataset.lat);
+            const lng = parseFloat(item.dataset.lng);
+            input.value = item.dataset.name;
+            suggestionsBox.classList.remove('visible');
+
+            if (marker) {
+              marker.setLatLng([lat, lng]);
+            } else {
+              marker = L.marker([lat, lng], { icon: pinIcon(type), draggable: true }).addTo(map);
+              marker.on('dragend', () => {
+                const pos = marker.getLatLng();
+                setCoords({ lat: pos.lat, lng: pos.lng });
+              });
+            }
+            map.setView([lat, lng], 15);
+            setCoords({ lat, lng });
+          });
+        });
+      }, 250);
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!suggestionsBox.contains(e.target) && e.target !== input) {
+        suggestionsBox.classList.remove('visible');
+      }
+    });
+  }
+
+  setupAddressField('pickup_address', 'pickup-suggestions', 'pickup-map', 'pickup');
+  setupAddressField('destination_address', 'destination-suggestions', 'destination-map', 'destination');
+
+  // After a delivery is created with a manually-pinned point, save it to the
+  // shared address book — unless a very similar location already exists nearby.
+  async function saveLocationIfNew(name, lat, lng) {
+    if (!name || !lat || !lng) return;
+    try {
+      const { data: nearby } = await supabaseClient
+        .from('locations')
+        .select('id, lat, lng')
+        .gte('lat', lat - 0.003).lte('lat', lat + 0.003)
+        .gte('lng', lng - 0.003).lte('lng', lng + 0.003);
+
+      const isDuplicate = (nearby || []).some(loc => haversineKm(lat, lng, loc.lat, loc.lng) < 0.1); // within 100m
+      if (isDuplicate) return;
+
+      await supabaseClient.from('locations').insert({ name, lat, lng });
+    } catch (e) {
+      console.warn('Could not save location:', e);
+    }
+  }
 
   async function loadRiders() {
     const { data, error } = await supabaseClient.from('riders').select('id, name, vehicle_type, email, phone, status');
@@ -782,22 +1081,35 @@
     const pickupAddress = document.getElementById('pickup_address').value;
     const destinationAddress = document.getElementById('destination_address').value;
 
-    const [pickupCoords, destinationCoords] = await Promise.all([
-      geocodeAddress(pickupAddress),
-      geocodeAddress(destinationAddress)
-    ]);
+    // Prefer the exact map-picked point if the business tapped one;
+    // fall back to free geocoding of the typed address otherwise.
+    let pickupCoords = manualPickup;
+    let destinationCoords = manualDestination;
+
+    if (!pickupCoords || !destinationCoords) {
+      submitBtn.textContent = 'Locating addresses…';
+      const [geoPickup, geoDestination] = await Promise.all([
+        pickupCoords ? Promise.resolve(pickupCoords) : geocodeAddress(pickupAddress),
+        destinationCoords ? Promise.resolve(destinationCoords) : geocodeAddress(destinationAddress)
+      ]);
+      pickupCoords = pickupCoords || geoPickup;
+      destinationCoords = destinationCoords || geoDestination;
+    }
 
     submitBtn.textContent = 'Creating…';
 
     const payload = {
       delivery_code: generateDeliveryCode(),
+      handoff_pin: generateHandoffPin(),
       customer_name: document.getElementById('customer_name').value,
       customer_phone: document.getElementById('customer_phone').value,
       package_description: document.getElementById('package_description').value,
       pickup_address: pickupAddress,
+      pickup_landmark: document.getElementById('pickup_landmark').value,
       pickup_lat: pickupCoords ? pickupCoords.lat : null,
       pickup_lng: pickupCoords ? pickupCoords.lng : null,
       destination_address: destinationAddress,
+      destination_landmark: document.getElementById('destination_landmark').value,
       destination_lat: destinationCoords ? destinationCoords.lat : null,
       destination_lng: destinationCoords ? destinationCoords.lng : null,
       rider_id: document.getElementById('rider_id').value,
@@ -816,11 +1128,22 @@
       formMsg.textContent = `Delivery ${payload.delivery_code} created and assigned.`;
       formMsg.className = 'form-msg success';
 
+      // Grow the shared address book with any newly-pinned locations
+      if (payload.pickup_lat && payload.pickup_lng) {
+        saveLocationIfNew(pickupAddress, payload.pickup_lat, payload.pickup_lng);
+      }
+      if (payload.destination_lat && payload.destination_lng) {
+        saveLocationIfNew(destinationAddress, payload.destination_lat, payload.destination_lng);
+      }
+
       const trackingUrl = `${window.location.origin}/customer.html?code=${payload.delivery_code}`;
       const waMessage = `Hi ${payload.customer_name}, your delivery (${payload.delivery_code}) is on the way! Track it live here: ${trackingUrl}`;
       document.getElementById('delivery-whatsapp-container').innerHTML = whatsappButton(payload.customer_phone, waMessage, 'Send tracking link to customer');
 
       form.reset();
+      manualPickup = null;
+      manualDestination = null;
+      updateDistancePreview();
       loadDeliveries();
 
       const assignedRider = ridersData.find(r => r.id === payload.rider_id);
@@ -846,6 +1169,37 @@
   const riderSubmitBtn = document.getElementById('rider-submit-btn');
   const riderFormMsg = document.getElementById('rider-form-msg');
 
+  // Live preview when a photo is selected
+  document.getElementById('rider_photo').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      document.getElementById('rider-photo-preview').innerHTML = `<img src="${ev.target.result}">`;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  async function uploadRiderPhoto(file, riderEmail) {
+    if (!file) return null;
+    try {
+      const fileExt = file.name.split('.').pop();
+      const filePath = `${riderEmail.replace(/[^a-zA-Z0-9]/g, '_')}-${Date.now()}.${fileExt}`;
+      const { error: uploadError } = await supabaseClient.storage
+        .from('rider-photos')
+        .upload(filePath, file, { upsert: true });
+      if (uploadError) {
+        console.error('Photo upload failed:', uploadError);
+        return null;
+      }
+      const { data } = supabaseClient.storage.from('rider-photos').getPublicUrl(filePath);
+      return data.publicUrl;
+    } catch (e) {
+      console.error('Photo upload error:', e);
+      return null;
+    }
+  }
+
   riderForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     riderSubmitBtn.disabled = true;
@@ -856,6 +1210,14 @@
     const email = document.getElementById('rider_email').value;
     const phone = document.getElementById('rider_phone').value;
     const vehicle_type = document.getElementById('rider_vehicle').value;
+    const photoFile = document.getElementById('rider_photo').files[0];
+
+    let photo_url = null;
+    if (photoFile) {
+      riderSubmitBtn.textContent = 'Uploading photo…';
+      photo_url = await uploadRiderPhoto(photoFile, email);
+      riderSubmitBtn.textContent = 'Adding…';
+    }
 
     // Check if a rider with this email already exists — update instead of duplicating
     const { data: existingRider } = await supabaseClient
@@ -864,17 +1226,20 @@
       .eq('email', email)
       .limit(1);
 
+    const riderFields = { name, phone, vehicle_type };
+    if (photo_url) riderFields.photo_url = photo_url;
+
     let insertError = null;
     if (existingRider && existingRider.length > 0) {
       const { error } = await supabaseClient
         .from('riders')
-        .update({ name, phone, vehicle_type })
+        .update(riderFields)
         .eq('id', existingRider[0].id);
       insertError = error;
     } else {
       const { error } = await supabaseClient
         .from('riders')
-        .insert({ name, email, phone, vehicle_type, status: 'offline' });
+        .insert({ ...riderFields, email, status: 'offline' });
       insertError = error;
     }
 

@@ -144,17 +144,61 @@
     background: #E5E9F0;
   }
 
-  .rider-marker {
-    width: 40px; height: 40px;
+  .rider-marker-wrap {
+    position: relative;
+    width: 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .rider-marker-ring {
+    position: absolute;
+    width: 64px; height: 64px;
     border-radius: 50%;
-    border: 3px solid var(--primary);
+    background: rgba(36, 84, 255, 0.18);
+    animation: ring-pulse 1.8s infinite ease-out;
+  }
+
+  @keyframes ring-pulse {
+    0% { transform: scale(0.7); opacity: 0.8; }
+    100% { transform: scale(1.3); opacity: 0; }
+  }
+
+  .rider-marker {
+    position: relative;
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    border: 3.5px solid var(--primary);
     background: var(--surface);
     display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 3px 10px rgba(36,84,255,0.3);
+    box-shadow: 0 4px 14px rgba(36,84,255,0.4);
     overflow: hidden;
-    font-size: 18px;
+    font-size: 24px;
+    z-index: 1;
   }
   .rider-marker img { width: 100%; height: 100%; object-fit: cover; }
+
+  .vehicle-badge {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--ink);
+    border: 2px solid var(--surface);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+    z-index: 2;
+  }
+
+  .heading-arrow {
+    position: absolute;
+    width: 64px; height: 64px;
+    transition: transform 0.4s ease;
+    z-index: 0;
+  }
 
   /* ---------- Stats row ---------- */
   .stats-row {
@@ -277,6 +321,126 @@
   }
   .whatsapp-btn:hover { background: #1EBE59; }
   .whatsapp-btn svg { width: 17px; height: 17px; fill: #fff; flex-shrink: 0; }
+
+  /* ---------- Handoff PIN ---------- */
+  .pin-card {
+    background: var(--ink);
+    border-radius: 12px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .pin-card-label { font-size: 12px; color: #94A3B8; }
+  .pin-card-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 0.15em;
+  }
+
+  .landmark-line {
+    font-size: 12px;
+    color: var(--slate-light);
+    margin-top: 2px;
+  }
+
+  /* ---------- Voice notes ---------- */
+  .updates-list { margin-bottom: 14px; }
+  .update-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .update-item audio { flex: 1; height: 32px; }
+  .update-time { font-size: 11px; color: var(--slate-light); white-space: nowrap; }
+
+  /* ---------- Rating ---------- */
+  .rating-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 14px;
+    text-align: center;
+  }
+  .rating-card h3 { font-size: 15px; margin-bottom: 12px; }
+  .star-row { display: flex; justify-content: center; gap: 6px; margin-bottom: 14px; }
+  .star-btn {
+    font-size: 30px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--border);
+    transition: color 0.15s ease;
+  }
+  .star-btn.filled { color: #F59E0B; }
+  .rating-card textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: 'Inter', sans-serif;
+    resize: vertical;
+    min-height: 50px;
+    margin-bottom: 10px;
+  }
+  .rating-submit-btn {
+    width: 100%;
+    padding: 11px;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: 9px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  /* ---------- Proof photo ---------- */
+  .proof-photo-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+  .proof-photo-card img { width: 100%; border-radius: 10px; }
+  .proof-photo-label { font-size: 12px; color: var(--slate); margin-bottom: 8px; font-weight: 600; }
+
+  /* ---------- Recap card ---------- */
+  .recap-card {
+    background: linear-gradient(135deg, var(--primary), #5B7FFF);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 14px;
+    color: #fff;
+    text-align: center;
+  }
+  .recap-card .recap-title { font-size: 13px; opacity: 0.85; margin-bottom: 6px; }
+  .recap-card .recap-time { font-size: 30px; font-weight: 700; font-family: 'Space Grotesk', sans-serif; margin-bottom: 4px; }
+  .recap-card .recap-sub { font-size: 13px; opacity: 0.85; margin-bottom: 16px; }
+  .recap-share-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,0.2);
+    color: #fff;
+    padding: 10px 18px;
+    border-radius: 9px;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .recap-share-btn svg { width: 15px; height: 15px; fill: #fff; }
 </style>
 </head>
 <body>
@@ -412,6 +576,8 @@
 
     delivery = data[0];
     renderPage();
+    loadUpdates();
+    subscribeToUpdates();
 
     if (!pollTimer) {
       pollTimer = setInterval(refreshDeliveryStatus, 4000);
@@ -426,9 +592,16 @@
       .limit(1);
     if (data && data.length > 0) {
       const wasApproved = delivery.tracking_approved;
+      const wasDelivered = delivery.status === 'delivered';
       delivery = data[0];
       updateHeaderCard();
       updateActionArea();
+
+      const pinCard = document.querySelector('.pin-card');
+      if (pinCard && delivery.status === 'delivered') {
+        pinCard.remove();
+      }
+
       if (delivery.tracking_approved && !wasApproved) {
         startLiveTracking();
       }
@@ -441,6 +614,15 @@
       ? `<img src="${rider.photo_url}" alt="${rider.name}">`
       : '🏍️';
 
+    const pickupLandmark = delivery.pickup_landmark ? `<div class="landmark-line">📍 ${delivery.pickup_landmark}</div>` : '';
+    const destLandmark = delivery.destination_landmark ? `<div class="landmark-line">📍 ${delivery.destination_landmark}</div>` : '';
+
+    const pinCardHtml = (delivery.handoff_pin && delivery.status !== 'delivered') ? `
+      <div class="pin-card">
+        <span class="pin-card-label">Show this code to the rider at handoff</span>
+        <span class="pin-card-value">${delivery.handoff_pin}</span>
+      </div>` : '';
+
     container.innerHTML = `
       <div class="delivery-header" id="delivery-header">
         <div class="delivery-top">
@@ -448,8 +630,8 @@
           <span class="tag ${tagClass(delivery)}" id="status-tag">${statusLabels[delivery.status] || delivery.status}</span>
         </div>
         <div class="route-text">
-          <span class="label">Pickup:</span> ${delivery.pickup_address}<br>
-          <span class="label">Destination:</span> ${delivery.destination_address}
+          <span class="label">Pickup:</span> ${delivery.pickup_address}${pickupLandmark}<br>
+          <span class="label">Destination:</span> ${delivery.destination_address}${destLandmark}
         </div>
         <div class="rider-row">
           <div class="rider-avatar-sm">${avatarContent}</div>
@@ -460,7 +642,13 @@
         </div>
       </div>
 
+      ${pinCardHtml}
+
       <div id="action-area"></div>
+
+      <div id="recap-area"></div>
+      <div id="proof-photo-area"></div>
+      <div id="rating-area"></div>
 
       <div class="wrong-direction-banner" id="wrong-direction-banner">
         ⚠️ The rider appears to have moved off the expected route.
@@ -478,6 +666,8 @@
           <div class="stat-value" id="stat-eta">—</div>
         </div>
       </div>
+
+      <div class="updates-list" id="updates-list"></div>
     `;
 
     initMap();
@@ -498,6 +688,9 @@
 
     if (delivery.status === 'delivered') {
       actionArea.innerHTML = `<div class="live-note">✅ This delivery has been completed.</div>`;
+      renderProofPhoto();
+      renderRecapCard();
+      renderRatingCard();
       return;
     }
 
@@ -533,6 +726,119 @@
         updateActionArea();
       });
     }
+  }
+
+  function renderProofPhoto() {
+    const area = document.getElementById('proof-photo-area');
+    if (!area) return;
+    if (!delivery.proof_photo_url) { area.innerHTML = ''; return; }
+    area.innerHTML = `
+      <div class="proof-photo-card">
+        <div class="proof-photo-label">Proof of delivery</div>
+        <img src="${delivery.proof_photo_url}" alt="Proof of delivery">
+      </div>`;
+  }
+
+  function renderRecapCard() {
+    const area = document.getElementById('recap-area');
+    if (!area || !delivery.delivered_at) { if (area) area.innerHTML = ''; return; }
+
+    const start = new Date(delivery.created_at);
+    const end = new Date(delivery.delivered_at);
+    const minutes = Math.max(1, Math.round((end - start) / 60000));
+    const timeLabel = minutes >= 60 ? `${Math.floor(minutes / 60)}h ${minutes % 60}m` : `${minutes} min`;
+    const rider = delivery.riders || {};
+
+    const shareMessage = `My PinPoint delivery (${delivery.delivery_code}) just arrived in ${timeLabel}, delivered by ${rider.name || 'a PinPoint rider'}! 📦✨`;
+    const shareUrl = `https://wa.me/?text=${encodeURIComponent(shareMessage)}`;
+
+    area.innerHTML = `
+      <div class="recap-card">
+        <div class="recap-title">DELIVERED IN</div>
+        <div class="recap-time">${timeLabel}</div>
+        <div class="recap-sub">${delivery.pickup_address} → ${delivery.destination_address}</div>
+        <a href="${shareUrl}" target="_blank" class="recap-share-btn">
+          <svg viewBox="0 0 24 24"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21h.01c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0012.04 2m0 1.67c2.2 0 4.26.86 5.82 2.42a8.225 8.225 0 012.41 5.83c0 4.54-3.7 8.23-8.24 8.23-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.188 8.188 0 01-1.25-4.37c0-4.54 3.7-8.25 8.25-8.25M8.53 7.33c-.16 0-.43.06-.66.31-.22.25-.86.84-.86 2.05 0 1.21.88 2.38 1 2.54.12.17 1.74 2.67 4.28 3.74.6.26 1.06.41 1.42.52.6.19 1.14.16 1.57.1.48-.07 1.46-.6 1.67-1.18.21-.58.21-1.07.15-1.18-.06-.1-.23-.17-.48-.29-.25-.13-1.46-.72-1.69-.8-.23-.08-.39-.13-.56.13-.16.25-.64.8-.78.97-.15.16-.29.18-.54.06-.25-.13-1.05-.39-2-1.24-.74-.66-1.24-1.47-1.39-1.72-.14-.25-.01-.38.11-.5.11-.11.25-.29.37-.44.12-.14.16-.25.24-.41.08-.17.04-.31-.02-.44-.06-.13-.56-1.36-.78-1.85-.2-.48-.41-.42-.56-.43-.15-.01-.32-.01-.48-.01z"/></svg>
+          Share on WhatsApp
+        </a>
+      </div>`;
+  }
+
+  function renderRatingCard() {
+    const area = document.getElementById('rating-area');
+    if (!area) return;
+
+    if (delivery.rating) {
+      area.innerHTML = `
+        <div class="rating-card">
+          <h3>You rated this delivery</h3>
+          <div class="star-row">${[1,2,3,4,5].map(n => `<span class="star-btn ${n <= delivery.rating ? 'filled' : ''}">★</span>`).join('')}</div>
+        </div>`;
+      return;
+    }
+
+    area.innerHTML = `
+      <div class="rating-card">
+        <h3>How was your delivery experience?</h3>
+        <div class="star-row" id="star-row">
+          ${[1,2,3,4,5].map(n => `<button class="star-btn" data-star="${n}">★</button>`).join('')}
+        </div>
+        <textarea id="rating-feedback" placeholder="Anything you'd like to add? (optional)"></textarea>
+        <button class="rating-submit-btn" id="rating-submit-btn">Submit rating</button>
+      </div>`;
+
+    let selectedStars = 0;
+    const starRow = document.getElementById('star-row');
+    starRow.querySelectorAll('.star-btn').forEach(star => {
+      star.addEventListener('click', () => {
+        selectedStars = parseInt(star.dataset.star);
+        starRow.querySelectorAll('.star-btn').forEach(s => {
+          s.classList.toggle('filled', parseInt(s.dataset.star) <= selectedStars);
+        });
+      });
+    });
+
+    document.getElementById('rating-submit-btn').addEventListener('click', async () => {
+      if (selectedStars === 0) { alert('Please select a star rating first.'); return; }
+      const feedback = document.getElementById('rating-feedback').value;
+      await supabaseClient.from('deliveries').update({
+        rating: selectedStars,
+        rating_feedback: feedback
+      }).eq('id', delivery.id);
+      delivery.rating = selectedStars;
+      renderRatingCard();
+    });
+  }
+
+  // ---------- Voice note / delivery updates ----------
+  async function loadUpdates() {
+    const list = document.getElementById('updates-list');
+    if (!list) return;
+
+    const { data } = await supabaseClient
+      .from('delivery_updates')
+      .select('*')
+      .eq('delivery_id', delivery.id)
+      .order('created_at', { ascending: true });
+
+    if (!data || data.length === 0) { list.innerHTML = ''; return; }
+
+    list.innerHTML = data.map(u => `
+      <div class="update-item">
+        <audio controls src="${u.audio_url}"></audio>
+        <span class="update-time">${new Date(u.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+      </div>
+    `).join('');
+  }
+
+  function subscribeToUpdates() {
+    supabaseClient
+      .channel(`updates-${delivery.id}`)
+      .on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'delivery_updates', filter: `delivery_id=eq.${delivery.id}` },
+        () => loadUpdates()
+      )
+      .subscribe();
   }
 
   // ---------- Map ----------
@@ -574,11 +880,22 @@
   function riderDivIcon() {
     const rider = delivery.riders || {};
     const content = rider.photo_url ? `<img src="${rider.photo_url}">` : '🏍️';
+    const vehicleEmoji = { bike: '🏍️', car: '🚗', foot: '🚶' }[rider.vehicle_type] || '🏍️';
+    const badge = rider.photo_url ? `<div class="vehicle-badge">${vehicleEmoji}</div>` : '';
+
     return L.divIcon({
-      html: `<div class="rider-marker">${content}</div>`,
+      html: `
+        <div class="rider-marker-wrap">
+          <div class="rider-marker-ring"></div>
+          <svg class="heading-arrow" id="rider-heading-arrow" viewBox="0 0 64 64">
+            <path d="M32 2 L40 20 L32 15 L24 20 Z" fill="#2454FF" opacity="0.85"/>
+          </svg>
+          <div class="rider-marker">${content}</div>
+          ${badge}
+        </div>`,
       className: '',
-      iconSize: [40, 40],
-      iconAnchor: [20, 20]
+      iconSize: [64, 64],
+      iconAnchor: [32, 32]
     });
   }
 
@@ -660,6 +977,18 @@
     map.panTo([ping.lat, ping.lng]);
     updateStats(ping.lat, ping.lng, ping.speed);
     checkWrongDirection(ping.lat, ping.lng);
+
+    // Rotate the direction arrow to face where the rider is actually heading
+    if (ping.heading !== null && ping.heading !== undefined) {
+      const markerEl = riderMarker.getElement();
+      if (markerEl) {
+        const arrow = markerEl.querySelector('#rider-heading-arrow');
+        if (arrow) {
+          arrow.style.transform = `rotate(${ping.heading}deg)`;
+          arrow.style.transformOrigin = '32px 32px';
+        }
+      }
+    }
   }
 
   loadDelivery();

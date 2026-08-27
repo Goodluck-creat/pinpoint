@@ -261,6 +261,79 @@
   .action-btn.accept:hover { background: var(--primary-dark); }
   .action-btn.finish { background: var(--ink); color: #fff; }
 
+  .voice-btn {
+    width: 100%;
+    padding: 11px;
+    border-radius: 9px;
+    font-size: 13px;
+    font-weight: 600;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    color: var(--ink);
+    cursor: pointer;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .voice-btn.recording {
+    background: #FEF2F2;
+    border-color: #FCA5A5;
+    color: #B91C1C;
+  }
+  .voice-btn svg { width: 15px; height: 15px; }
+
+  .landmark-line {
+    font-size: 12px;
+    color: var(--slate-light);
+    margin-top: 2px;
+  }
+
+  .complete-panel {
+    background: #F8FAFC;
+    border: 1.5px dashed var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    margin-top: 10px;
+  }
+
+  .complete-panel label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  .complete-panel input[type="file"] { font-size: 12px; margin-bottom: 12px; width: 100%; }
+  .complete-panel input[type="text"] {
+    width: 100%;
+    padding: 10px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    font-size: 16px;
+    letter-spacing: 0.1em;
+    text-align: center;
+    margin-bottom: 10px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .photo-thumb {
+    width: 100%;
+    max-height: 140px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    display: none;
+  }
+
+  .pin-error {
+    font-size: 12px;
+    color: #B91C1C;
+    margin: -4px 0 10px;
+    display: none;
+  }
+
   /* ---------- Consent banner ---------- */
   .consent-banner {
     background: var(--warn-tint);
@@ -519,10 +592,26 @@
     if (d.tracking_approved && d.status !== 'delivered') {
       actionsHtml += `
         <div class="live-indicator"><span class="pulse-dot"></span>Sharing live location</div>
-        <button class="action-btn finish" data-action="deliver" data-id="${d.id}">Mark as delivered</button>`;
+        <button class="voice-btn" data-action="voice" data-id="${d.id}" id="voice-btn-${d.id}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4"/></svg>
+          Send voice update
+        </button>
+        <button class="action-btn finish" data-action="show-complete" data-id="${d.id}">Mark as delivered</button>
+        <div class="complete-panel" id="complete-panel-${d.id}" style="display:none;">
+          <label>Proof of delivery photo</label>
+          <input type="file" accept="image/*" capture="environment" id="proof-photo-${d.id}">
+          <img class="photo-thumb" id="proof-thumb-${d.id}">
+          <label>Ask the customer for their handoff code</label>
+          <input type="text" maxlength="4" placeholder="0000" id="pin-input-${d.id}">
+          <div class="pin-error" id="pin-error-${d.id}">That code doesn't match. Please confirm with the customer.</div>
+          <button class="action-btn finish" data-action="confirm-deliver" data-id="${d.id}">Confirm delivery</button>
+        </div>`;
     } else if (d.status === 'accepted') {
       actionsHtml += `<div class="empty-state" style="padding:16px; font-size:13px;">Waiting for customer to request tracking…</div>`;
     }
+
+    const pickupLandmark = d.pickup_landmark ? `<div class="landmark-line">📍 ${d.pickup_landmark}</div>` : '';
+    const destLandmark = d.destination_landmark ? `<div class="landmark-line">📍 ${d.destination_landmark}</div>` : '';
 
     return `
       <div class="delivery-card">
@@ -532,11 +621,58 @@
         </div>
         <div class="delivery-customer">${d.customer_name}</div>
         <div class="delivery-route">
-          <span class="label">Pickup:</span> ${d.pickup_address}<br>
-          <span class="label">Destination:</span> ${d.destination_address}
+          <span class="label">Pickup:</span> ${d.pickup_address}${pickupLandmark}<br>
+          <span class="label">Destination:</span> ${d.destination_address}${destLandmark}
         </div>
         ${actionsHtml}
       </div>`;
+  }
+
+  let mediaRecorder = null;
+  let audioChunks = [];
+
+  async function toggleVoiceRecording(deliveryId, btn) {
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+      mediaRecorder.stop();
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorder = new MediaRecorder(stream);
+      audioChunks = [];
+
+      mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
+
+      mediaRecorder.onstop = async () => {
+        btn.classList.remove('recording');
+        btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4"/></svg> Uploading…`;
+
+        const blob = new Blob(audioChunks, { type: 'audio/webm' });
+        const filePath = `${deliveryId}-${Date.now()}.webm`;
+        const { error: uploadError } = await supabaseClient.storage
+          .from('voice-notes')
+          .upload(filePath, blob);
+
+        if (!uploadError) {
+          const { data } = supabaseClient.storage.from('voice-notes').getPublicUrl(filePath);
+          await supabaseClient.from('delivery_updates').insert({
+            delivery_id: deliveryId,
+            type: 'voice',
+            audio_url: data.publicUrl
+          });
+        }
+
+        btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4"/></svg> Send voice update`;
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+      btn.classList.add('recording');
+      btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12"/></svg> Tap to stop recording`;
+    } catch (e) {
+      alert('Microphone access is needed to send a voice update.');
+    }
   }
 
   function attachCardHandlers(deliveries) {
@@ -544,6 +680,59 @@
       btn.addEventListener('click', async () => {
         const id = btn.getAttribute('data-id');
         const action = btn.getAttribute('data-action');
+
+        if (action === 'voice') {
+          toggleVoiceRecording(id, btn);
+          return;
+        }
+
+        if (action === 'show-complete') {
+          const panel = document.getElementById(`complete-panel-${id}`);
+          if (panel) panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+          return;
+        }
+
+        if (action === 'confirm-deliver') {
+          const enteredPin = document.getElementById(`pin-input-${id}`).value.trim();
+          const errorEl = document.getElementById(`pin-error-${id}`);
+          const photoFile = document.getElementById(`proof-photo-${id}`).files[0];
+          const delivery = deliveries.find(d => d.id === id);
+
+          if (!delivery || enteredPin !== delivery.handoff_pin) {
+            errorEl.style.display = 'block';
+            return;
+          }
+          errorEl.style.display = 'none';
+
+          btn.disabled = true;
+          btn.textContent = 'Confirming…';
+
+          let proof_photo_url = null;
+          if (photoFile) {
+            const filePath = `${id}-${Date.now()}.jpg`;
+            const { error: uploadErr } = await supabaseClient.storage.from('delivery-photos').upload(filePath, photoFile);
+            if (!uploadErr) {
+              const { data } = supabaseClient.storage.from('delivery-photos').getPublicUrl(filePath);
+              proof_photo_url = data.publicUrl;
+            }
+          }
+
+          await supabaseClient.from('deliveries').update({
+            status: 'delivered',
+            tracking_approved: false,
+            delivered_at: new Date().toISOString(),
+            proof_photo_url: proof_photo_url
+          }).eq('id', id);
+
+          if (watchId !== null) {
+            navigator.geolocation.clearWatch(watchId);
+            watchId = null;
+          }
+
+          loadDeliveries();
+          return;
+        }
+
         btn.disabled = true;
 
         if (action === 'accept') {
@@ -552,15 +741,25 @@
           await supabaseClient.from('deliveries').update({ tracking_approved: true, status: 'tracking_approved' }).eq('id', id);
         } else if (action === 'decline') {
           await supabaseClient.from('deliveries').update({ tracking_requested: false }).eq('id', id);
-        } else if (action === 'deliver') {
-          await supabaseClient.from('deliveries').update({ status: 'delivered', tracking_approved: false }).eq('id', id);
-          if (watchId !== null) {
-            navigator.geolocation.clearWatch(watchId);
-            watchId = null;
-          }
         }
 
         loadDeliveries();
+      });
+    });
+
+    // Live preview of the selected proof-of-delivery photo
+    deliveriesContainer.querySelectorAll('[id^="proof-photo-"]').forEach(input => {
+      input.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const id = input.id.replace('proof-photo-', '');
+        const thumb = document.getElementById(`proof-thumb-${id}`);
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          thumb.src = ev.target.result;
+          thumb.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
       });
     });
   }
