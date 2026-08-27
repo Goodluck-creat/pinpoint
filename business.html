@@ -664,6 +664,28 @@
     return digits;
   }
 
+  // Calls the generate-rider-link Edge Function to get a REAL one-tap
+  // sign-in link (with a working auth token) for use in WhatsApp messages.
+  // Falls back to a plain link if the function isn't deployed yet or fails.
+  async function getRiderMagicLink(email) {
+    try {
+      const { data, error } = await supabaseClient.functions.invoke('generate-rider-link', {
+        body: {
+          email,
+          redirectTo: window.location.origin + '/rider.html'
+        }
+      });
+      if (error || !data || !data.link) {
+        console.warn('Falling back to plain rider link:', error);
+        return window.location.origin + '/rider.html';
+      }
+      return data.link;
+    } catch (e) {
+      console.warn('Edge function call failed, using plain link:', e);
+      return window.location.origin + '/rider.html';
+    }
+  }
+
   function whatsappButton(phone, message, label) {
     const number = toWhatsAppNumber(phone);
     if (!number) return '';
@@ -809,8 +831,8 @@
             options: { emailRedirectTo: window.location.origin + '/rider.html' }
           });
         }
-        if (assignedRider.phone) {
-          const riderUrl = `${window.location.origin}/rider.html`;
+        if (assignedRider.phone && assignedRider.email) {
+          const riderUrl = await getRiderMagicLink(assignedRider.email);
           const riderWaMessage = `Hi ${assignedRider.name}, you have a new PinPoint delivery (${payload.delivery_code}) for ${payload.customer_name}. Open your rider page to view and accept it: ${riderUrl}`;
           const existing = document.getElementById('delivery-whatsapp-container').innerHTML;
           document.getElementById('delivery-whatsapp-container').innerHTML =
@@ -879,7 +901,8 @@
       riderFormMsg.textContent = `${name} added — invite sent to ${email}.`;
       riderFormMsg.className = 'form-msg success';
 
-      const waMessage = `Hi ${name}, you've been added as a rider on PinPoint! Check your email (${email}) for a sign-in link, or tap here to sign in: ${window.location.origin}/rider.html`;
+      const magicLink = await getRiderMagicLink(email);
+      const waMessage = `Hi ${name}, you've been added as a rider on PinPoint! Tap here to sign in and view your deliveries: ${magicLink}`;
       document.getElementById('rider-whatsapp-container').innerHTML = whatsappButton(phone, waMessage, 'Send invite via WhatsApp');
 
       riderForm.reset();

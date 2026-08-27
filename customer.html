@@ -329,6 +329,20 @@
     return 'accepted';
   }
 
+  async function getRiderMagicLink(email) {
+    try {
+      const { data, error } = await supabaseClient.functions.invoke('generate-rider-link', {
+        body: { email, redirectTo: window.location.origin + '/rider.html' }
+      });
+      if (error || !data || !data.link) {
+        return window.location.origin + '/rider.html';
+      }
+      return data.link;
+    } catch (e) {
+      return window.location.origin + '/rider.html';
+    }
+  }
+
   function toWhatsAppNumber(phone) {
     if (!phone) return null;
     let digits = phone.replace(/\D/g, '');
@@ -387,7 +401,7 @@
 
     const { data, error } = await supabaseClient
       .from('deliveries')
-      .select('*, riders(name, photo_url, vehicle_type, phone)')
+      .select('*, riders(name, photo_url, vehicle_type, phone, email)')
       .eq('delivery_code', deliveryCode)
       .limit(1);
 
@@ -407,7 +421,7 @@
   async function refreshDeliveryStatus() {
     const { data } = await supabaseClient
       .from('deliveries')
-      .select('*, riders(name, photo_url, vehicle_type, phone)')
+      .select('*, riders(name, photo_url, vehicle_type, phone, email)')
       .eq('delivery_code', deliveryCode)
       .limit(1);
     if (data && data.length > 0) {
@@ -478,7 +492,7 @@
     }
   }
 
-  function updateActionArea() {
+  async function updateActionArea() {
     const actionArea = document.getElementById('action-area');
     if (!actionArea) return;
 
@@ -497,8 +511,8 @@
       const rider = delivery.riders || {};
       let waHtml = '';
       if (rider.phone) {
-        const riderUrl = `${window.location.origin}/rider.html`;
-        const message = `Hi ${rider.name || ''}, ${delivery.customer_name} wants to view your live location for delivery ${delivery.delivery_code}. Open your rider page to approve: ${riderUrl}`;
+        const riderUrl = rider.email ? await getRiderMagicLink(rider.email) : `${window.location.origin}/rider.html`;
+        const message = `Hi ${rider.name || ''}, ${delivery.customer_name} wants to view your live location for delivery ${delivery.delivery_code}. Tap here to approve: ${riderUrl}`;
         waHtml = whatsappButton(rider.phone, message, `Notify ${rider.name || 'rider'} via WhatsApp`);
       }
       actionArea.innerHTML = `<div class="waiting-note">Waiting for the rider to approve live tracking…</div>${waHtml}`;
