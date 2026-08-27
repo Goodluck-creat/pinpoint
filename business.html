@@ -215,6 +215,25 @@
     color: #B91C1C;
   }
 
+  .whatsapp-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 12px;
+    background: #25D366;
+    color: #fff;
+    border-radius: 9px;
+    font-size: 14px;
+    font-weight: 600;
+    margin-top: 10px;
+    text-decoration: none;
+    transition: background 0.15s ease;
+  }
+  .whatsapp-btn:hover { background: #1EBE59; }
+  .whatsapp-btn svg { width: 17px; height: 17px; fill: #fff; flex-shrink: 0; }
+
   /* ---------- Deliveries List ---------- */
   .deliveries-header {
     display: flex;
@@ -394,6 +413,7 @@
         </div>
         <button type="submit" class="submit-btn" id="rider-submit-btn">Add rider &amp; send invite</button>
         <div class="form-msg" id="rider-form-msg"></div>
+        <div id="rider-whatsapp-container"></div>
       </form>
     </div>
 
@@ -428,6 +448,7 @@
         </div>
         <button type="submit" class="submit-btn" id="submit-btn">Create delivery</button>
         <div class="form-msg" id="form-msg"></div>
+        <div id="delivery-whatsapp-container"></div>
       </form>
     </div>
   </div>
@@ -448,10 +469,11 @@
 </div>
 
 <script>
-  // ====== CONFIGURE THIS ======
+ // ====== CONFIGURE THIS ======
   const SUPABASE_URL = 'https://wtxikghyylclqnhxfcvu.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_3XEbw4-lAFfIVgG-haVbGQ_Q2305QI7';
   // =============================
+
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: { flowType: 'implicit' }
   });
@@ -485,6 +507,30 @@
   function generateDeliveryCode() {
     const num = Math.floor(100000 + Math.random() * 900000);
     return `PPD-${num}`;
+  }
+
+  // Converts a local Nigerian number (e.g. 080X XXX XXXX) into WhatsApp's
+  // required international format (234XXXXXXXXXX, no +, no spaces)
+  function toWhatsAppNumber(phone) {
+    if (!phone) return null;
+    let digits = phone.replace(/\D/g, ''); // strip everything but digits
+    if (digits.startsWith('0')) {
+      digits = '234' + digits.slice(1);
+    } else if (!digits.startsWith('234')) {
+      digits = '234' + digits;
+    }
+    return digits;
+  }
+
+  function whatsappButton(phone, message) {
+    const number = toWhatsAppNumber(phone);
+    if (!number) return '';
+    const url = `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
+    return `
+      <a href="${url}" target="_blank" class="whatsapp-btn">
+        <svg viewBox="0 0 24 24"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21h.01c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0012.04 2m0 1.67c2.2 0 4.26.86 5.82 2.42a8.225 8.225 0 012.41 5.83c0 4.54-3.7 8.23-8.24 8.23-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.188 8.188 0 01-1.25-4.37c0-4.54 3.7-8.25 8.25-8.25M8.53 7.33c-.16 0-.43.06-.66.31-.22.25-.86.84-.86 2.05 0 1.21.88 2.38 1 2.54.12.17 1.74 2.67 4.28 3.74.6.26 1.06.41 1.42.52.6.19 1.14.16 1.57.1.48-.07 1.46-.6 1.67-1.18.21-.58.21-1.07.15-1.18-.06-.1-.23-.17-.48-.29-.25-.13-1.46-.72-1.69-.8-.23-.08-.39-.13-.56.13-.16.25-.64.8-.78.97-.15.16-.29.18-.54.06-.25-.13-1.05-.39-2-1.24-.74-.66-1.24-1.47-1.39-1.72-.14-.25-.01-.38.11-.5.11-.11.25-.29.37-.44.12-.14.16-.25.24-.41.08-.17.04-.31-.02-.44-.06-.13-.56-1.36-.78-1.85-.2-.48-.41-.42-.56-.43-.15-.01-.32-.01-.48-.01z"/></svg>
+        Send via WhatsApp
+      </a>`;
   }
 
   let ridersData = [];
@@ -572,6 +618,11 @@
     } else {
       formMsg.textContent = `Delivery ${payload.delivery_code} created and assigned.`;
       formMsg.className = 'form-msg success';
+
+      const trackingUrl = `${window.location.origin}/customer.html?code=${payload.delivery_code}`;
+      const waMessage = `Hi ${payload.customer_name}, your delivery (${payload.delivery_code}) is on the way! Track it live here: ${trackingUrl}`;
+      document.getElementById('delivery-whatsapp-container').innerHTML = whatsappButton(payload.customer_phone, waMessage);
+
       form.reset();
       loadDeliveries();
 
@@ -632,6 +683,10 @@
     } else {
       riderFormMsg.textContent = `${name} added — invite sent to ${email}.`;
       riderFormMsg.className = 'form-msg success';
+
+      const waMessage = `Hi ${name}, you've been added as a rider on PinPoint! Check your email (${email}) for a sign-in link to view your deliveries.`;
+      document.getElementById('rider-whatsapp-container').innerHTML = whatsappButton(phone, waMessage);
+
       riderForm.reset();
     }
 
