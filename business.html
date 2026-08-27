@@ -448,11 +448,10 @@
 </div>
 
 <script>
- // ====== CONFIGURE THIS ======
+  // ====== CONFIGURE THIS ======
   const SUPABASE_URL = 'https://wtxikghyylclqnhxfcvu.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_3XEbw4-lAFfIVgG-haVbGQ_Q2305QI7';
   // =============================
-
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: { flowType: 'implicit' }
   });
@@ -488,8 +487,10 @@
     return `PPD-${num}`;
   }
 
+  let ridersData = [];
+
   async function loadRiders() {
-    const { data, error } = await supabaseClient.from('riders').select('id, name, vehicle_type');
+    const { data, error } = await supabaseClient.from('riders').select('id, name, vehicle_type, email');
     if (error) {
       riderSelect.innerHTML = '<option value="">Could not load riders</option>';
       return;
@@ -498,6 +499,7 @@
       riderSelect.innerHTML = '<option value="">No riders yet — add one first</option>';
       return;
     }
+    ridersData = data;
     riderSelect.innerHTML = '<option value="">Select a rider</option>' +
       data.map(r => `<option value="${r.id}">${r.name}${r.vehicle_type ? ' · ' + r.vehicle_type : ''}</option>`).join('');
   }
@@ -572,6 +574,15 @@
       formMsg.className = 'form-msg success';
       form.reset();
       loadDeliveries();
+
+      // Notify the assigned rider by sending them a sign-in link
+      const assignedRider = ridersData.find(r => r.id === payload.rider_id);
+      if (assignedRider && assignedRider.email) {
+        await supabaseClient.auth.signInWithOtp({
+          email: assignedRider.email,
+          options: { emailRedirectTo: window.location.origin + '/rider.html' }
+        });
+      }
     }
   });
 

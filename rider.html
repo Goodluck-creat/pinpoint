@@ -46,7 +46,8 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 18px 24px;
+    gap: 10px;
+    padding: 14px 16px;
     border-bottom: 1px solid var(--border);
     background: var(--surface);
     position: sticky;
@@ -54,34 +55,47 @@
     z-index: 10;
   }
 
-  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand { display: flex; align-items: center; gap: 8px; min-width: 0; flex-shrink: 0; }
 
   .brand-mark {
-    width: 32px; height: 32px;
-    border-radius: 9px;
+    width: 30px; height: 30px;
+    border-radius: 8px;
     background: linear-gradient(135deg, var(--primary), #5B7FFF);
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
   }
-  .brand-mark svg { width: 17px; height: 17px; }
+  .brand-mark svg { width: 16px; height: 16px; }
 
-  .brand-name { font-size: 17px; font-weight: 700; }
+  .brand-name { font-size: 16px; font-weight: 700; white-space: nowrap; }
 
   .brand-tag {
     font-size: 12px;
     color: var(--slate);
     font-weight: 500;
-    padding-left: 10px;
-    margin-left: 10px;
+    padding-left: 8px;
+    margin-left: 8px;
     border-left: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  @media (max-width: 420px) {
+    .brand-tag { display: none; }
   }
 
   .rider-chip {
-    font-size: 13px;
+    font-size: 12px;
     color: var(--slate);
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
+    min-width: 0;
+    max-width: 55%;
+  }
+
+  #rider-email-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .status-dot {
@@ -95,7 +109,18 @@
   .container {
     max-width: 480px;
     margin: 0 auto;
-    padding: 28px 20px 60px;
+    padding: 20px 16px 60px;
+  }
+
+  .delivery-route, .delivery-customer, .delivery-code, #rider-email-label {
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+
+  @media (max-width: 380px) {
+    .container { padding: 16px 12px 50px; }
+    .delivery-card { padding: 18px; }
+    .signin-card { padding: 26px 20px; }
   }
 
   /* ---------- Sign in card ---------- */
@@ -352,7 +377,6 @@
   const SUPABASE_URL = 'https://wtxikghyylclqnhxfcvu.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_3XEbw4-lAFfIVgG-haVbGQ_Q2305QI7';
   // =============================
-
 
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: { flowType: 'implicit' }
