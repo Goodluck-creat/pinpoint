@@ -469,10 +469,11 @@
 </div>
 
 <script>
- // ====== CONFIGURE THIS ======
+  // ====== CONFIGURE THIS ======
   const SUPABASE_URL = 'https://wtxikghyylclqnhxfcvu.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_3XEbw4-lAFfIVgG-haVbGQ_Q2305QI7';
   // =============================
+
 
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: { flowType: 'implicit' }
@@ -507,6 +508,23 @@
   function generateDeliveryCode() {
     const num = Math.floor(100000 + Math.random() * 900000);
     return `PPD-${num}`;
+  }
+
+  // Free geocoding via OpenStreetMap's Nominatim service — converts a
+  // typed address into lat/lng coordinates, needed for maps, distance
+  // and wrong-direction detection on the customer page.
+  async function geocodeAddress(address) {
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(address + ', Nigeria')}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data && data.length > 0) {
+        return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+      }
+    } catch (e) {
+      console.error('Geocoding failed:', e);
+    }
+    return null;
   }
 
   // Converts a local Nigerian number (e.g. 080X XXX XXXX) into WhatsApp's
@@ -593,16 +611,30 @@
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Creating…';
+    submitBtn.textContent = 'Locating addresses…';
     formMsg.className = 'form-msg';
+
+    const pickupAddress = document.getElementById('pickup_address').value;
+    const destinationAddress = document.getElementById('destination_address').value;
+
+    const [pickupCoords, destinationCoords] = await Promise.all([
+      geocodeAddress(pickupAddress),
+      geocodeAddress(destinationAddress)
+    ]);
+
+    submitBtn.textContent = 'Creating…';
 
     const payload = {
       delivery_code: generateDeliveryCode(),
       customer_name: document.getElementById('customer_name').value,
       customer_phone: document.getElementById('customer_phone').value,
       package_description: document.getElementById('package_description').value,
-      pickup_address: document.getElementById('pickup_address').value,
-      destination_address: document.getElementById('destination_address').value,
+      pickup_address: pickupAddress,
+      pickup_lat: pickupCoords ? pickupCoords.lat : null,
+      pickup_lng: pickupCoords ? pickupCoords.lng : null,
+      destination_address: destinationAddress,
+      destination_lat: destinationCoords ? destinationCoords.lat : null,
+      destination_lng: destinationCoords ? destinationCoords.lng : null,
       rider_id: document.getElementById('rider_id').value,
       status: 'assigned'
     };
