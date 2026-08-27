@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PinPoint — Business Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --bg: #FAFBFC;
+    --surface: #FFFFFF;
+    --ink: #0F172A;
+    --slate: #64748B;
+    --slate-light: #94A3B8;
+    --border: #E5E9F0;
+    --primary: #2454FF;
+    --primary-dark: #1A3FD1;
+    --primary-tint: #EEF2FF;
+    --live: #00C896;
+    --live-tint: #E6FBF4;
+    --warn: #F59E0B;
+    --radius: 14px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3, .display {
+    font-family: 'Space Grotesk', sans-serif;
+    letter-spacing: -0.01em;
+  }
+
+  .mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* ---------- Header ---------- */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 40px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .brand-mark {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, var(--primary), #5B7FFF);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .brand-mark svg { width: 18px; height: 18px; }
+
+  .brand-name {
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  .brand-tag {
+    font-size: 12px;
+    color: var(--slate);
+    font-weight: 500;
+    padding-left: 10px;
+    margin-left: 10px;
+    border-left: 1px solid var(--border);
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 14px;
+    color: var(--slate);
+  }
+
+  .status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--live);
+    display: inline-block;
+    margin-right: 6px;
+    box-shadow: 0 0 0 3px var(--live-tint);
+  }
+
+  /* ---------- Layout ---------- */
+  .layout {
+    display: grid;
+    grid-template-columns: 420px 1fr;
+    gap: 32px;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 40px;
+  }
+
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; padding: 20px; }
+  }
+
+  .panel-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--slate);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 16px;
+  }
+
+  /* ---------- Form Card ---------- */
+  .form-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+  }
+
+  .field {
+    margin-bottom: 18px;
+  }
+
+  .field label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: var(--ink);
+  }
+
+  .field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  input, select, textarea {
+    width: 100%;
+    padding: 11px 13px;
+    border: 1.5px solid var(--border);
+    border-radius: 9px;
+    font-size: 14px;
+    font-family: 'Inter', sans-serif;
+    background: #FDFDFE;
+    color: var(--ink);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-tint);
+    background: #fff;
+  }
+
+  textarea { resize: vertical; min-height: 64px; }
+
+  .submit-btn {
+    width: 100%;
+    padding: 13px;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: 9px;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    margin-top: 6px;
+    transition: background 0.15s ease, transform 0.1s ease;
+  }
+
+  .submit-btn:hover { background: var(--primary-dark); }
+  .submit-btn:active { transform: scale(0.99); }
+  .submit-btn:disabled { background: var(--slate-light); cursor: not-allowed; }
+
+  .form-msg {
+    font-size: 13px;
+    margin-top: 12px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    display: none;
+  }
+
+  .form-msg.success {
+    display: block;
+    background: var(--live-tint);
+    color: #067A5C;
+  }
+
+  .form-msg.error {
+    display: block;
+    background: #FEF2F2;
+    color: #B91C1C;
+  }
+
+  /* ---------- Deliveries List ---------- */
+  .deliveries-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 16px;
+  }
+
+  .delivery-count {
+    font-size: 13px;
+    color: var(--slate-light);
+  }
+
+  .empty-state {
+    border: 1.5px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 60px 24px;
+    text-align: center;
+    color: var(--slate);
+  }
+
+  .empty-state svg { width: 40px; height: 40px; margin-bottom: 14px; opacity: 0.5; }
+  .empty-state p { font-size: 14px; }
+
+  .stub-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  /* Signature element: boarding-pass style tracking stub */
+  .stub {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    animation: rise 0.35s ease;
+  }
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .stub-main {
+    padding: 20px 22px;
+  }
+
+  .stub-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .stub-code {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--slate);
+    letter-spacing: 0.02em;
+  }
+
+  .tag {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 100px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  .tag.created { background: var(--primary-tint); color: var(--primary); }
+  .tag.assigned { background: #FFF7E6; color: #B7791F; }
+  .tag.in_transit { background: var(--live-tint); color: #067A5C; }
+  .tag.delivered { background: #F1F5F9; color: var(--slate); }
+
+  .stub-customer {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .stub-route {
+    font-size: 13px;
+    color: var(--slate);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .stub-route .arrow { color: var(--slate-light); }
+
+  .stub-side {
+    border-left: 1.5px dashed var(--border);
+    background: var(--primary-tint);
+    padding: 20px 18px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-width: 130px;
+    position: relative;
+  }
+
+  .stub-side::before, .stub-side::after {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    background: var(--bg);
+    border-radius: 50%;
+    left: -8px;
+  }
+  .stub-side::before { top: -8px; }
+  .stub-side::after { bottom: -8px; }
+
+  .stub-rider-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--primary);
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .stub-rider-name {
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="brand-mark">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 2C7.58 2 4 5.58 4 10c0 5.25 8 12 8 12s8-6.75 8-12c0-4.42-3.58-8-8-8z" fill="white"/><circle cx="12" cy="10" r="3" fill="#2454FF"/></svg>
+    </div>
+    <span class="brand-name">PinPoint</span>
+    <span class="brand-tag">Business Dashboard</span>
+  </div>
+  <div class="header-right">
+    <span><span class="status-dot"></span>Connected</span>
+  </div>
+</header>
+
+<div class="layout">
+  <!-- Create Delivery Form -->
+  <div>
+    <div class="panel-title">Create Delivery</div>
+    <div class="form-card">
+      <form id="delivery-form">
+        <div class="field">
+          <label for="customer_name">Customer name</label>
+          <input type="text" id="customer_name" required placeholder="e.g. Chioma Okafor">
+        </div>
+        <div class="field">
+          <label for="customer_phone">Customer phone</label>
+          <input type="tel" id="customer_phone" required placeholder="080X XXX XXXX">
+        </div>
+        <div class="field">
+          <label for="package_description">Package description</label>
+          <textarea id="package_description" placeholder="What's being delivered?"></textarea>
+        </div>
+        <div class="field">
+          <label for="pickup_address">Pickup address</label>
+          <input type="text" id="pickup_address" required placeholder="Where the rider collects it">
+        </div>
+        <div class="field">
+          <label for="destination_address">Destination address</label>
+          <input type="text" id="destination_address" required placeholder="Where it's going">
+        </div>
+        <div class="field">
+          <label for="rider_id">Assign rider</label>
+          <select id="rider_id" required>
+            <option value="">Loading riders…</option>
+          </select>
+        </div>
+        <button type="submit" class="submit-btn" id="submit-btn">Create delivery</button>
+        <div class="form-msg" id="form-msg"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Deliveries List -->
+  <div>
+    <div class="deliveries-header">
+      <div class="panel-title" style="margin-bottom:0;">Deliveries</div>
+      <span class="delivery-count" id="delivery-count">0 total</span>
+    </div>
+    <div id="deliveries-list">
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2C7.58 2 4 5.58 4 10c0 5.25 8 12 8 12s8-6.75 8-12c0-4.42-3.58-8-8-8z"/><circle cx="12" cy="10" r="3"/></svg>
+        <p>No deliveries yet. Create one to get started.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ====== CONFIGURE THIS ======
+  const SUPABASE_URL = 'https://wtxikghyylclqnhxfcvu.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_3XEbw4-lAFfIVgG-haVbGQ_Q2305QI7';
+  // =============================
+
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const riderSelect = document.getElementById('rider_id');
+  const form = document.getElementById('delivery-form');
+  const submitBtn = document.getElementById('submit-btn');
+  const formMsg = document.getElementById('form-msg');
+  const deliveriesList = document.getElementById('deliveries-list');
+  const deliveryCount = document.getElementById('delivery-count');
+
+  const statusLabels = {
+    created: 'Created',
+    assigned: 'Assigned',
+    accepted: 'Accepted',
+    tracking_requested: 'Tracking requested',
+    tracking_approved: 'Tracking live',
+    picked_up: 'Picked up',
+    in_transit: 'In transit',
+    arriving: 'Arriving',
+    delivered: 'Delivered'
+  };
+
+  function tagClass(status) {
+    if (status === 'delivered') return 'delivered';
+    if (['picked_up', 'in_transit', 'arriving', 'tracking_approved'].includes(status)) return 'in_transit';
+    if (['assigned', 'accepted', 'tracking_requested'].includes(status)) return 'assigned';
+    return 'created';
+  }
+
+  function generateDeliveryCode() {
+    const num = Math.floor(100000 + Math.random() * 900000);
+    return `PPD-${num}`;
+  }
+
+  async function loadRiders() {
+    const { data, error } = await supabaseClient.from('riders').select('id, name, vehicle_type');
+    if (error) {
+      riderSelect.innerHTML = '<option value="">Could not load riders</option>';
+      return;
+    }
+    if (!data || data.length === 0) {
+      riderSelect.innerHTML = '<option value="">No riders yet — add one first</option>';
+      return;
+    }
+    riderSelect.innerHTML = '<option value="">Select a rider</option>' +
+      data.map(r => `<option value="${r.id}">${r.name}${r.vehicle_type ? ' · ' + r.vehicle_type : ''}</option>`).join('');
+  }
+
+  async function loadDeliveries() {
+    const { data, error } = await supabaseClient
+      .from('deliveries')
+      .select('id, delivery_code, customer_name, pickup_address, destination_address, status, rider_id, riders(name)')
+      .order('created_at', { ascending: false });
+
+    if (error || !data || data.length === 0) {
+      deliveriesList.innerHTML = `
+        <div class="empty-state">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2C7.58 2 4 5.58 4 10c0 5.25 8 12 8 12s8-6.75 8-12c0-4.42-3.58-8-8-8z"/><circle cx="12" cy="10" r="3"/></svg>
+          <p>No deliveries yet. Create one to get started.</p>
+        </div>`;
+      deliveryCount.textContent = '0 total';
+      return;
+    }
+
+    deliveryCount.textContent = `${data.length} total`;
+
+    deliveriesList.innerHTML = '<div class="stub-grid">' + data.map(d => `
+      <div class="stub">
+        <div class="stub-main">
+          <div class="stub-top">
+            <span class="stub-code mono">${d.delivery_code}</span>
+            <span class="tag ${tagClass(d.status)}">${statusLabels[d.status] || d.status}</span>
+          </div>
+          <div class="stub-customer">${d.customer_name}</div>
+          <div class="stub-route">
+            <span>${d.pickup_address}</span>
+            <span class="arrow">→</span>
+            <span>${d.destination_address}</span>
+          </div>
+        </div>
+        <div class="stub-side">
+          <div class="stub-rider-label">Rider</div>
+          <div class="stub-rider-name">${d.riders ? d.riders.name : 'Unassigned'}</div>
+        </div>
+      </div>
+    `).join('') + '</div>';
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Creating…';
+    formMsg.className = 'form-msg';
+
+    const payload = {
+      delivery_code: generateDeliveryCode(),
+      customer_name: document.getElementById('customer_name').value,
+      customer_phone: document.getElementById('customer_phone').value,
+      package_description: document.getElementById('package_description').value,
+      pickup_address: document.getElementById('pickup_address').value,
+      destination_address: document.getElementById('destination_address').value,
+      rider_id: document.getElementById('rider_id').value,
+      status: 'assigned'
+    };
+
+    const { error } = await supabaseClient.from('deliveries').insert(payload);
+
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Create delivery';
+
+    if (error) {
+      formMsg.textContent = 'Something went wrong: ' + error.message;
+      formMsg.className = 'form-msg error';
+    } else {
+      formMsg.textContent = `Delivery ${payload.delivery_code} created and assigned.`;
+      formMsg.className = 'form-msg success';
+      form.reset();
+      loadDeliveries();
+    }
+  });
+
+  loadRiders();
+  loadDeliveries();
+
+  // Refresh delivery list every 5s so status changes from rider/customer pages show up
+  setInterval(loadDeliveries, 5000);
+</script>
+
+</body>
+</html>
