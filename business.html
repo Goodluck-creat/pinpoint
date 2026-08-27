@@ -365,8 +365,38 @@
 </header>
 
 <div class="layout">
-  <!-- Create Delivery Form -->
+  <!-- Add Rider + Create Delivery -->
   <div>
+    <div class="panel-title">Add Rider</div>
+    <div class="form-card" style="margin-bottom: 32px;">
+      <form id="rider-form">
+        <div class="field">
+          <label for="rider_name">Rider name</label>
+          <input type="text" id="rider_name" required placeholder="e.g. Ifeanyi Obi">
+        </div>
+        <div class="field">
+          <label for="rider_email">Rider email</label>
+          <input type="email" id="rider_email" required placeholder="rider@email.com">
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="rider_phone">Phone</label>
+            <input type="tel" id="rider_phone" placeholder="080X XXX XXXX">
+          </div>
+          <div class="field">
+            <label for="rider_vehicle">Vehicle</label>
+            <select id="rider_vehicle">
+              <option value="bike">Bike</option>
+              <option value="car">Car</option>
+              <option value="foot">On foot</option>
+            </select>
+          </div>
+        </div>
+        <button type="submit" class="submit-btn" id="rider-submit-btn">Add rider &amp; send invite</button>
+        <div class="form-msg" id="rider-form-msg"></div>
+      </form>
+    </div>
+
     <div class="panel-title">Create Delivery</div>
     <div class="form-card">
       <form id="delivery-form">
@@ -422,6 +452,8 @@
   const SUPABASE_URL = 'https://wtxikghyylclqnhxfcvu.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_3XEbw4-lAFfIVgG-haVbGQ_Q2305QI7';
   // =============================
+
+
 
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -541,6 +573,58 @@
       form.reset();
       loadDeliveries();
     }
+  });
+
+  // ---------- Add Rider ----------
+  const riderForm = document.getElementById('rider-form');
+  const riderSubmitBtn = document.getElementById('rider-submit-btn');
+  const riderFormMsg = document.getElementById('rider-form-msg');
+
+  riderForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    riderSubmitBtn.disabled = true;
+    riderSubmitBtn.textContent = 'Adding…';
+    riderFormMsg.className = 'form-msg';
+
+    const name = document.getElementById('rider_name').value;
+    const email = document.getElementById('rider_email').value;
+    const phone = document.getElementById('rider_phone').value;
+    const vehicle_type = document.getElementById('rider_vehicle').value;
+
+    // 1. Insert the rider record
+    const { error: insertError } = await supabaseClient
+      .from('riders')
+      .insert({ name, email, phone, vehicle_type, status: 'offline' });
+
+    if (insertError) {
+      riderSubmitBtn.disabled = false;
+      riderSubmitBtn.textContent = 'Add rider & send invite';
+      riderFormMsg.textContent = 'Could not add rider: ' + insertError.message;
+      riderFormMsg.className = 'form-msg error';
+      return;
+    }
+
+    // 2. Send the magic link invite to the rider's email
+    const { error: otpError } = await supabaseClient.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: window.location.origin + '/rider.html'
+      }
+    });
+
+    riderSubmitBtn.disabled = false;
+    riderSubmitBtn.textContent = 'Add rider & send invite';
+
+    if (otpError) {
+      riderFormMsg.textContent = `Rider added, but invite email failed: ${otpError.message}`;
+      riderFormMsg.className = 'form-msg error';
+    } else {
+      riderFormMsg.textContent = `${name} added — invite sent to ${email}.`;
+      riderFormMsg.className = 'form-msg success';
+      riderForm.reset();
+    }
+
+    loadRiders();
   });
 
   loadRiders();
