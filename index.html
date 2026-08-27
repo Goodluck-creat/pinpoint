@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PinPoint — Live delivery tracking for small businesses</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FAFBFC;
+    --surface: #FFFFFF;
+    --ink: #0F172A;
+    --slate: #64748B;
+    --slate-light: #94A3B8;
+    --border: #E5E9F0;
+    --primary: #2454FF;
+    --primary-dark: #1A3FD1;
+    --primary-tint: #EEF2FF;
+    --live: #00C896;
+    --live-tint: #E6FBF4;
+    --radius: 16px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, .display {
+    font-family: 'Space Grotesk', sans-serif;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+
+  .mono { font-family: 'JetBrains Mono', monospace; }
+
+  a { text-decoration: none; color: inherit; }
+
+  .wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 40px;
+  }
+
+  @media (max-width: 700px) {
+    .wrap { padding: 0 20px; }
+  }
+
+  /* ---------- Nav ---------- */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: rgba(250, 251, 252, 0.85);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .nav-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 40px;
+    max-width: 1180px;
+    margin: 0 auto;
+  }
+
+  @media (max-width: 700px) {
+    .nav-inner { padding: 16px 20px; }
+  }
+
+  .brand { display: flex; align-items: center; gap: 10px; }
+
+  .brand-mark {
+    width: 32px; height: 32px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, var(--primary), #5B7FFF);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .brand-mark svg { width: 17px; height: 17px; }
+
+  .brand-name { font-size: 17px; font-weight: 700; }
+
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--slate);
+  }
+
+  @media (max-width: 700px) {
+    .nav-links { display: none; }
+  }
+
+  .nav-cta {
+    background: var(--primary);
+    color: #fff !important;
+    padding: 9px 18px;
+    border-radius: 8px;
+    font-weight: 600;
+  }
+
+  /* ---------- Hero ---------- */
+  .hero {
+    padding: 90px 0 70px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 50px;
+    align-items: center;
+  }
+
+  @media (max-width: 900px) {
+    .hero { grid-template-columns: 1fr; padding: 50px 0 40px; }
+  }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--primary);
+    background: var(--primary-tint);
+    padding: 6px 13px;
+    border-radius: 100px;
+    margin-bottom: 22px;
+  }
+
+  .hero h1 {
+    font-size: 48px;
+    margin-bottom: 20px;
+  }
+
+  @media (max-width: 700px) {
+    .hero h1 { font-size: 34px; }
+  }
+
+  .hero-sub {
+    font-size: 17px;
+    color: var(--slate);
+    line-height: 1.6;
+    max-width: 440px;
+    margin-bottom: 32px;
+  }
+
+  .hero-ctas { display: flex; gap: 12px; flex-wrap: wrap; }
+
+  .btn-primary {
+    background: var(--primary);
+    color: #fff;
+    padding: 13px 24px;
+    border-radius: 9px;
+    font-weight: 600;
+    font-size: 14px;
+    display: inline-block;
+    transition: background 0.15s ease;
+  }
+  .btn-primary:hover { background: var(--primary-dark); }
+
+  .btn-secondary {
+    background: var(--surface);
+    color: var(--ink);
+    padding: 13px 24px;
+    border-radius: 9px;
+    font-weight: 600;
+    font-size: 14px;
+    border: 1.5px solid var(--border);
+    display: inline-block;
+  }
+
+  .no-download-note {
+    margin-top: 20px;
+    font-size: 13px;
+    color: var(--slate-light);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* ---------- Hero Visual: Signature Element ---------- */
+  .hero-visual {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 30px;
+    position: relative;
+    box-shadow: 0 20px 50px -20px rgba(15, 23, 42, 0.12);
+  }
+
+  .visual-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+
+  .visual-code {
+    font-size: 12px;
+    color: var(--slate);
+  }
+
+  .live-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #067A5C;
+    background: var(--live-tint);
+    padding: 4px 10px;
+    border-radius: 100px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .pulse-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--live);
+    animation: pulse 1.6s infinite;
+  }
+
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(0, 200, 150, 0.5); }
+    70% { box-shadow: 0 0 0 8px rgba(0, 200, 150, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(0, 200, 150, 0); }
+  }
+
+  .route-svg { width: 100%; height: auto; display: block; }
+
+  .route-path {
+    fill: none;
+    stroke: var(--primary);
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-dasharray: 6 8;
+    opacity: 0.35;
+  }
+
+  .rider-dot {
+    fill: var(--primary);
+  }
+
+  .rider-glow {
+    fill: var(--primary);
+    opacity: 0.18;
+  }
+
+  .visual-footer {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 18px;
+    font-size: 13px;
+    color: var(--slate);
+  }
+
+  .visual-footer strong { color: var(--ink); font-weight: 600; }
+
+  /* ---------- How it works ---------- */
+  .section { padding: 80px 0; }
+
+  .section-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--primary);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 12px;
+  }
+
+  .section h2 {
+    font-size: 32px;
+    max-width: 540px;
+    margin-bottom: 50px;
+  }
+
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+
+  @media (max-width: 800px) {
+    .steps { grid-template-columns: 1fr; }
+  }
+
+  .step-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+  }
+
+  .step-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--slate-light);
+    margin-bottom: 16px;
+  }
+
+  .step-card h3 { font-size: 18px; margin-bottom: 10px; }
+  .step-card p { font-size: 14px; color: var(--slate); line-height: 1.55; }
+
+  /* ---------- Differentiators ---------- */
+  .diff-section { background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+
+  .diff-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  @media (max-width: 800px) {
+    .diff-grid { grid-template-columns: 1fr; }
+  }
+
+  .diff-card {
+    background: var(--surface);
+    padding: 32px 28px;
+  }
+
+  .diff-icon {
+    width: 38px; height: 38px;
+    border-radius: 10px;
+    background: var(--primary-tint);
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 18px;
+  }
+  .diff-icon svg { width: 19px; height: 19px; stroke: var(--primary); }
+
+  .diff-card h3 { font-size: 16px; margin-bottom: 8px; }
+  .diff-card p { font-size: 14px; color: var(--slate); line-height: 1.55; }
+
+  /* ---------- Final CTA ---------- */
+  .final-cta {
+    padding: 90px 0;
+    text-align: center;
+  }
+
+  .final-cta h2 { font-size: 32px; margin-bottom: 16px; }
+  .final-cta p { font-size: 16px; color: var(--slate); margin-bottom: 30px; }
+
+  /* ---------- Footer ---------- */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 30px 0;
+  }
+
+  .footer-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    color: var(--slate-light);
+  }
+
+  @media (max-width: 700px) {
+    .footer-inner { flex-direction: column; gap: 10px; text-align: center; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 2C7.58 2 4 5.58 4 10c0 5.25 8 12 8 12s8-6.75 8-12c0-4.42-3.58-8-8-8z" fill="white"/><circle cx="12" cy="10" r="3" fill="#2454FF"/></svg>
+      </div>
+      <span class="brand-name">PinPoint</span>
+    </div>
+    <div class="nav-links">
+      <a href="#how-it-works">How it works</a>
+      <a href="#why-pinpoint">Why PinPoint</a>
+      <a href="business.html" class="nav-cta">Business Login</a>
+    </div>
+  </div>
+</nav>
+
+<section class="wrap hero">
+  <div>
+    <div class="eyebrow"><span class="pulse-dot"></span>Built for Nigerian small businesses</div>
+    <h1>Know exactly where your delivery is — in real time.</h1>
+    <p class="hero-sub">PinPoint gives any small business live delivery tracking, without buying an app or hiring a logistics company. Your rider, your customer, one shared view.</p>
+    <div class="hero-ctas">
+      <a href="business.html" class="btn-primary">Get started free</a>
+      <a href="#how-it-works" class="btn-secondary">See how it works</a>
+    </div>
+    <div class="no-download-note">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+      Works right in the browser — no app download for riders or customers
+    </div>
+  </div>
+
+  <div class="hero-visual">
+    <div class="visual-header">
+      <span class="visual-code mono">PPD-802769</span>
+      <span class="live-badge"><span class="pulse-dot"></span>Live</span>
+    </div>
+
+    <svg class="route-svg" viewBox="0 0 340 160" xmlns="http://www.w3.org/2000/svg">
+      <path class="route-path" d="M 30 130 C 90 130, 100 40, 170 40 S 260 100, 310 40" />
+      <circle cx="30" cy="130" r="5" fill="#0F172A"/>
+      <circle cx="310" cy="40" r="5" fill="#00C896"/>
+      <circle class="rider-glow" r="14">
+        <animateMotion dur="4s" repeatCount="indefinite"
+          path="M 30 130 C 90 130, 100 40, 170 40 S 260 100, 310 40" />
+      </circle>
+      <circle class="rider-dot" r="6">
+        <animateMotion dur="4s" repeatCount="indefinite"
+          path="M 30 130 C 90 130, 100 40, 170 40 S 260 100, 310 40" />
+      </circle>
+    </svg>
+
+    <div class="visual-footer">
+      <span>Pickup: <strong>Onu Street</strong></span>
+      <span>Destination: <strong>Umukabia</strong></span>
+    </div>
+  </div>
+</section>
+
+<section class="wrap section" id="how-it-works">
+  <div class="section-label">How it works</div>
+  <h2>Three steps from "package created" to "customer sees it arrive."</h2>
+  <div class="steps">
+    <div class="step-card">
+      <div class="step-num mono">01</div>
+      <h3>Business creates the delivery</h3>
+      <p>Enter the customer's details, pickup and destination, and assign it to a rider — right from the dashboard, no paperwork.</p>
+    </div>
+    <div class="step-card">
+      <div class="step-num mono">02</div>
+      <h3>Rider accepts and shares location</h3>
+      <p>The rider approves the delivery and, once the customer asks to track it, approves that too — tracking never starts without consent.</p>
+    </div>
+    <div class="step-card">
+      <div class="step-num mono">03</div>
+      <h3>Customer watches it happen</h3>
+      <p>A live map shows the rider moving toward them in real time, with an alert if the route ever drifts off course.</p>
+    </div>
+  </div>
+</section>
+
+<section class="diff-section">
+  <div class="wrap section" id="why-pinpoint">
+    <div class="section-label">Why PinPoint</div>
+    <h2>Not another ride-hailing app. Built for the delivery you already run.</h2>
+    <div class="diff-grid">
+      <div class="diff-card">
+        <div class="diff-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M9 12l2 2 4-4M12 3l8 4v5c0 5-3.5 9-8 10-4.5-1-8-5-8-10V7z"/></svg></div>
+        <h3>Consent, not surveillance</h3>
+        <p>Riders approve tracking before it starts. Customers see a real person choosing to be seen — not a stranger being watched.</p>
+      </div>
+      <div class="diff-card">
+        <div class="diff-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg></div>
+        <h3>Wrong-direction alerts</h3>
+        <p>PinPoint watches the route as the rider moves, and flags it the moment they drift — so deliveries stay honest and on time.</p>
+      </div>
+      <div class="diff-card">
+        <div class="diff-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"/></svg></div>
+        <h3>Made for one-rider businesses</h3>
+        <p>No fleet, no enterprise contract. If you sell on Instagram and send one rider out a day, PinPoint fits you, not the other way around.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="wrap final-cta">
+  <h2>Give your customers a reason to trust the wait.</h2>
+  <p>Set up your business in minutes — no downloads, no cost to start.</p>
+  <a href="business.html" class="btn-primary">Get started free</a>
+</section>
+
+<footer>
+  <div class="wrap footer-inner">
+    <span>© 2026 PinPoint · A Glovatech product</span>
+    <span>pinpoint.glovatech.com.ng</span>
+  </div>
+</footer>
+
+</body>
+</html>
