@@ -467,6 +467,7 @@
   let currentRider = null;
   let watchId = null;
   let refreshTimer = null;
+  let interactionLocked = false; // true while a completion panel is open, so refresh doesn't wipe it out
 
   const statusLabels = {
     assigned: 'Assigned',
@@ -548,6 +549,7 @@
   // ---------- Deliveries ----------
   async function loadDeliveries() {
     if (!currentRider) return;
+    if (interactionLocked) return; // don't rebuild the UI while the rider is mid-completion
 
     const { data, error } = await supabaseClient
       .from('deliveries')
@@ -664,10 +666,12 @@
         }
 
         btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4"/></svg> Send voice update`;
+        interactionLocked = false;
         stream.getTracks().forEach(track => track.stop());
       };
 
       mediaRecorder.start();
+      interactionLocked = true;
       btn.classList.add('recording');
       btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12"/></svg> Tap to stop recording`;
     } catch (e) {
@@ -688,7 +692,11 @@
 
         if (action === 'show-complete') {
           const panel = document.getElementById(`complete-panel-${id}`);
-          if (panel) panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+          if (panel) {
+            const opening = panel.style.display === 'none';
+            panel.style.display = opening ? 'block' : 'none';
+            interactionLocked = opening; // pause refresh while the panel is open
+          }
           return;
         }
 
@@ -729,6 +737,7 @@
             watchId = null;
           }
 
+          interactionLocked = false; // done — safe to resume auto-refresh
           loadDeliveries();
           return;
         }
