@@ -43,8 +43,8 @@
 
   h1, h2, h3, .display {
     font-family: 'Space Grotesk', sans-serif;
-    letter-spacing: -0.02em;
-    line-height: 1.1;
+    letter-spacing: -0.01em;
+    line-height: 1.15;
   }
 
   .mono { font-family: 'JetBrains Mono', monospace; }
@@ -58,7 +58,7 @@
   }
 
   @media (max-width: 700px) {
-    .wrap { padding: 0 24px; }
+    .wrap { padding: 0 28px; }
   }
 
   /* ---------- Nav ---------- */
@@ -170,37 +170,37 @@
 
   /* ---------- Hero ---------- */
   .hero {
-    padding: 90px 0 70px;
+    padding: 110px 0 90px;
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 50px;
+    gap: 60px;
     align-items: center;
   }
 
   @media (max-width: 900px) {
-    .hero { grid-template-columns: 1fr; padding: 44px 0 48px; gap: 40px; }
+    .hero { grid-template-columns: 1fr; padding: 56px 0 56px; gap: 40px; }
   }
 
   .hero h1 {
-    font-size: 48px;
-    margin-bottom: 20px;
+    font-size: 46px;
+    margin-bottom: 22px;
     margin-top: 8px;
   }
 
   @media (max-width: 700px) {
-    .hero h1 { font-size: 32px; line-height: 1.25; }
+    .hero h1 { font-size: 30px; line-height: 1.3; }
   }
 
   .hero-sub {
     font-size: 17px;
     color: var(--slate);
     line-height: 1.6;
-    max-width: 440px;
-    margin-bottom: 32px;
+    max-width: 400px;
+    margin-bottom: 36px;
   }
 
   @media (max-width: 700px) {
-    .hero-sub { font-size: 15px; margin-bottom: 26px; }
+    .hero-sub { font-size: 15px; margin-bottom: 28px; }
   }
 
   .hero-ctas { display: flex; gap: 12px; flex-wrap: wrap; }
@@ -536,8 +536,8 @@
 
 <section class="wrap hero">
   <div>
-    <h1>Know exactly where your delivery is — and if it's going the wrong way.</h1>
-    <p class="hero-sub">PinPoint lets your business assign a delivery to a rider and a customer by email. Both authorize it with one tap, the customer can share their live location, and the rider gets an alert the moment they drift off course.</p>
+    <h1>Know where your delivery is. And if it's going wrong.</h1>
+    <p class="hero-sub">Live tracking for your riders and customers — no app to download, no complexity.</p>
     <div class="hero-ctas">
       <a href="business.html" class="btn-primary">Register your business</a>
       <a href="business.html" class="btn-secondary">Log in</a>
@@ -658,6 +658,16 @@
 </footer>
 
 <script>
+  // ---------- Nav menu: runs first, independent of everything else, ----------
+  // ---------- so it can never be broken by another script failing.  ----------
+  document.getElementById('hamburger-btn').addEventListener('click', () => {
+    document.getElementById('nav-links').classList.toggle('open');
+  });
+
+  document.querySelectorAll('#nav-links a').forEach(link => {
+    link.addEventListener('click', () => document.getElementById('nav-links').classList.remove('open'));
+  });
+
   const SUPABASE_URL = 'https://wtxikghyylclqnhxfcvu.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_3XEbw4-lAFfIVgG-haVbGQ_Q2305QI7';
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -672,91 +682,111 @@
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
-  const awMap = L.map('aw-map', { zoomControl: false }).setView([6.2104, 7.0716], 11);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors'
-  }).addTo(awMap);
-  setTimeout(() => awMap.invalidateSize(), 300);
-
-  let awMarker = null;
-  let awCoords = null;
-  const awSubmitBtn = document.getElementById('aw-submit');
-  const awMsg = document.getElementById('aw-msg');
-
-  function checkAwReady() {
-    const name = document.getElementById('aw-name').value.trim();
-    awSubmitBtn.disabled = !(name.length > 1 && awCoords);
-  }
-
-  document.getElementById('aw-name').addEventListener('input', checkAwReady);
-
-  awMap.on('click', (e) => {
-    const { lat, lng } = e.latlng;
-    if (awMarker) {
-      awMarker.setLatLng([lat, lng]);
-    } else {
-      awMarker = L.marker([lat, lng], { draggable: true }).addTo(awMap);
-      awMarker.on('dragend', () => {
-        const pos = awMarker.getLatLng();
-        awCoords = { lat: pos.lat, lng: pos.lng };
-        checkAwReady();
-      });
-    }
-    awCoords = { lat, lng };
-    checkAwReady();
-  });
-
-  awSubmitBtn.addEventListener('click', async () => {
-    const name = document.getElementById('aw-name').value.trim();
-    if (!name || !awCoords) return;
-
-    awSubmitBtn.disabled = true;
-    awSubmitBtn.textContent = 'Checking…';
-    awMsg.className = 'aw-msg';
-
-    // Duplicate check: is there already a saved address within ~100m of this pin?
-    const { data: nearby } = await supabaseClient
-      .from('locations')
-      .select('id, name, lat, lng')
-      .gte('lat', awCoords.lat - 0.003).lte('lat', awCoords.lat + 0.003)
-      .gte('lng', awCoords.lng - 0.003).lte('lng', awCoords.lng + 0.003);
-
-    const duplicate = (nearby || []).find(loc => haversineKm(awCoords.lat, awCoords.lng, loc.lat, loc.lng) < 0.1);
-
-    if (duplicate) {
-      awMsg.textContent = `This spot is already saved as "${duplicate.name}" — thanks for double-checking!`;
-      awMsg.className = 'aw-msg duplicate';
-      awSubmitBtn.disabled = false;
-      awSubmitBtn.textContent = 'Save this address';
+  // ---------- Address-saving widget: wrapped so a failed map library ----------
+  // ---------- (e.g. blocked CDN, data-saver mode) degrades gracefully ----------
+  // ---------- instead of crashing the rest of the page's scripts.    ----------
+  function initAddressWidget() {
+    if (typeof L === 'undefined') {
+      const mapEl = document.getElementById('aw-map');
+      if (mapEl) {
+        mapEl.innerHTML = '';
+        mapEl.style.display = 'flex';
+        mapEl.style.alignItems = 'center';
+        mapEl.style.justifyContent = 'center';
+        mapEl.style.textAlign = 'center';
+        mapEl.style.padding = '20px';
+        mapEl.style.fontSize = '13px';
+        mapEl.style.color = '#94A3B8';
+        mapEl.textContent = "The map couldn't load — this can happen on slower connections or data-saving modes. Please refresh the page to try again.";
+      }
+      const submitBtn = document.getElementById('aw-submit');
+      if (submitBtn) submitBtn.disabled = true;
       return;
     }
 
-    const { error } = await supabaseClient.from('locations').insert({
-      name, lat: awCoords.lat, lng: awCoords.lng
-    });
+    try {
+      const awMap = L.map('aw-map', { zoomControl: false }).setView([6.2104, 7.0716], 11);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(awMap);
+      setTimeout(() => awMap.invalidateSize(), 300);
 
-    awSubmitBtn.textContent = 'Save this address';
+      let awMarker = null;
+      let awCoords = null;
+      const awSubmitBtn = document.getElementById('aw-submit');
+      const awMsg = document.getElementById('aw-msg');
 
-    if (error) {
-      awMsg.textContent = 'Something went wrong — please try again.';
-      awMsg.className = 'aw-msg error';
-      awSubmitBtn.disabled = false;
-    } else {
-      awMsg.textContent = `"${name}" saved! Businesses can now find it when creating deliveries.`;
-      awMsg.className = 'aw-msg success';
-      document.getElementById('aw-name').value = '';
-      if (awMarker) { awMap.removeLayer(awMarker); awMarker = null; }
-      awCoords = null;
+      function checkAwReady() {
+        const name = document.getElementById('aw-name').value.trim();
+        awSubmitBtn.disabled = !(name.length > 1 && awCoords);
+      }
+
+      document.getElementById('aw-name').addEventListener('input', checkAwReady);
+
+      awMap.on('click', (e) => {
+        const { lat, lng } = e.latlng;
+        if (awMarker) {
+          awMarker.setLatLng([lat, lng]);
+        } else {
+          awMarker = L.marker([lat, lng], { draggable: true }).addTo(awMap);
+          awMarker.on('dragend', () => {
+            const pos = awMarker.getLatLng();
+            awCoords = { lat: pos.lat, lng: pos.lng };
+            checkAwReady();
+          });
+        }
+        awCoords = { lat, lng };
+        checkAwReady();
+      });
+
+      awSubmitBtn.addEventListener('click', async () => {
+        const name = document.getElementById('aw-name').value.trim();
+        if (!name || !awCoords) return;
+
+        awSubmitBtn.disabled = true;
+        awSubmitBtn.textContent = 'Checking…';
+        awMsg.className = 'aw-msg';
+
+        const { data: nearby } = await supabaseClient
+          .from('locations')
+          .select('id, name, lat, lng')
+          .gte('lat', awCoords.lat - 0.003).lte('lat', awCoords.lat + 0.003)
+          .gte('lng', awCoords.lng - 0.003).lte('lng', awCoords.lng + 0.003);
+
+        const duplicate = (nearby || []).find(loc => haversineKm(awCoords.lat, awCoords.lng, loc.lat, loc.lng) < 0.1);
+
+        if (duplicate) {
+          awMsg.textContent = `This spot is already saved as "${duplicate.name}" — thanks for double-checking!`;
+          awMsg.className = 'aw-msg duplicate';
+          awSubmitBtn.disabled = false;
+          awSubmitBtn.textContent = 'Save this address';
+          return;
+        }
+
+        const { error } = await supabaseClient.from('locations').insert({
+          name, lat: awCoords.lat, lng: awCoords.lng
+        });
+
+        awSubmitBtn.textContent = 'Save this address';
+
+        if (error) {
+          awMsg.textContent = 'Something went wrong — please try again.';
+          awMsg.className = 'aw-msg error';
+          awSubmitBtn.disabled = false;
+        } else {
+          awMsg.textContent = `"${name}" saved! Businesses can now find it when creating deliveries.`;
+          awMsg.className = 'aw-msg success';
+          document.getElementById('aw-name').value = '';
+          if (awMarker) { awMap.removeLayer(awMarker); awMarker = null; }
+          awCoords = null;
+        }
+      });
+    } catch (e) {
+      console.error('Address widget failed to initialize:', e);
     }
-  });
+  }
 
-  document.getElementById('hamburger-btn').addEventListener('click', () => {
-    document.getElementById('nav-links').classList.toggle('open');
-  });
-
-  document.querySelectorAll('#nav-links a').forEach(link => {
-    link.addEventListener('click', () => document.getElementById('nav-links').classList.remove('open'));
-  });
+  initAddressWidget();
 </script>
 
 </body>

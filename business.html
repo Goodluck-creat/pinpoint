@@ -678,6 +678,17 @@
           <div class="stat-label">Riders</div>
         </div>
       </div>
+
+      <div class="deliveries-header">
+        <span class="panel-title" style="margin:0;">Recent Deliveries</span>
+        <button class="quick-action-btn" id="qa-view-all-deliveries" style="flex-direction:row; gap:6px; padding:8px 14px; font-size:12px;">View all</button>
+      </div>
+      <div id="recent-deliveries-list">
+        <div class="empty-state">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2C7.58 2 4 5.58 4 10c0 5.25 8 12 8 12s8-6.75 8-12c0-4.42-3.58-8-8-8z"/><circle cx="12" cy="10" r="3"/></svg>
+          <p>No deliveries yet. Create one to get started.</p>
+        </div>
+      </div>
     </div>
 
     <!-- ---------- CREATE DELIVERY ---------- -->
@@ -826,6 +837,35 @@
       </div>
     </div>
 
+    <!-- ---------- LOCATIONS ---------- -->
+    <div class="content-section" id="section-locations">
+      <div class="section-header"><div><h2>Locations</h2><p>Every address saved so far — searchable and reusable across deliveries.</p></div></div>
+
+      <div class="form-card" style="margin-bottom:24px;">
+        <div class="field">
+          <label for="new_location_name">Location name</label>
+          <input type="text" id="new_location_name" placeholder="e.g. Ifite Junction, near the blue kiosk">
+        </div>
+        <div class="mini-map" id="new-location-map"></div>
+        <div class="picker-hint">Tap the map to place a pin for this location</div>
+        <button type="button" class="submit-btn" id="save-new-location-btn" disabled>Save location</button>
+        <div class="form-msg" id="new-location-msg"></div>
+      </div>
+
+      <div class="track-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input type="text" id="locations-search-input" placeholder="Search saved locations...">
+      </div>
+
+      <div class="deliveries-header">
+        <span class="panel-title" style="margin:0;">Saved Locations</span>
+        <span class="delivery-count" id="locations-count">0 total</span>
+      </div>
+      <div id="locations-list">
+        <div class="empty-state">Loading locations…</div>
+      </div>
+    </div>
+
   </main>
 
   <nav class="bottom-nav">
@@ -844,6 +884,10 @@
     <button class="nav-item" data-section="section-riders">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
       Riders
+    </button>
+    <button class="nav-item" data-section="section-locations">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C7.58 2 4 5.58 4 10c0 5.25 8 12 8 12s8-6.75 8-12c0-4.42-3.58-8-8-8z"/><circle cx="12" cy="10" r="3"/></svg>
+      Locations
     </button>
     <button class="nav-item" data-section="section-analytics">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
@@ -888,6 +932,7 @@
     document.getElementById(sectionId).classList.add('active');
     window.dispatchEvent(new Event('resize'));
     if (sectionId === 'section-analytics') loadAnalytics();
+    if (sectionId === 'section-locations') { initLocationsSection(); loadAllLocations(); }
   }
 
   // ---------- Business Auth ----------
@@ -1359,6 +1404,7 @@
       document.getElementById('stat-total').textContent = '0';
       document.getElementById('stat-active').textContent = '0';
       document.getElementById('stat-delivered').textContent = '0';
+      renderRecentDeliveries([]);
       return;
     }
 
@@ -1367,7 +1413,45 @@
     document.getElementById('stat-delivered').textContent = data.filter(d => d.status === 'delivered').length;
     document.getElementById('stat-active').textContent = data.filter(d => d.status !== 'delivered' && d.status !== 'failed').length;
     renderDeliveriesList(data);
+    renderRecentDeliveries(data);
   }
+
+  function renderRecentDeliveries(data) {
+    const container = document.getElementById('recent-deliveries-list');
+    if (!container) return;
+
+    if (!data || data.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2C7.58 2 4 5.58 4 10c0 5.25 8 12 8 12s8-6.75 8-12c0-4.42-3.58-8-8-8z"/><circle cx="12" cy="10" r="3"/></svg>
+          <p>No deliveries yet. Create one to get started.</p>
+        </div>`;
+      return;
+    }
+
+    const recent = data.slice(0, 5);
+    container.innerHTML = '<div class="stub-grid">' + recent.map(d => `
+      <div class="stub stub-clickable" data-track-id="${d.id}">
+        <div class="stub-main">
+          <div class="stub-top">
+            <span class="stub-code mono">${d.delivery_code}</span>
+            <span class="tag ${tagClass(d.status)}">${statusLabels[d.status] || d.status}</span>
+          </div>
+          <div class="stub-customer">${d.customer_name}</div>
+          <div class="stub-route"><span>${d.pickup_address}</span><span class="arrow">→</span><span>${d.destination_address}</span></div>
+        </div>
+        <div class="stub-side">
+          <div class="stub-rider-label">Rider</div>
+          <div class="stub-rider-name">${d.riders ? d.riders.name : 'Unassigned'}</div>
+        </div>
+      </div>`).join('') + '</div>';
+
+    container.querySelectorAll('[data-track-id]').forEach(el => {
+      el.addEventListener('click', () => openTrackLive(el.dataset.trackId));
+    });
+  }
+
+  document.getElementById('qa-view-all-deliveries').addEventListener('click', () => goToSection('section-deliveries'));
 
   function renderDeliveriesList(data) {
     deliveryCount.textContent = `${data.length} total`;
@@ -1842,6 +1926,110 @@
     if (trackChannel) { supabaseClient.removeChannel(trackChannel); trackChannel = null; }
     goToSection('section-deliveries');
   });
+
+  // ---------- Locations management ----------
+  let allLocations = [];
+  let newLocationMap = null;
+  let newLocationMarker = null;
+  let newLocationCoords = null;
+
+  function initLocationsSection() {
+    if (newLocationMap) return; // already initialized
+
+    newLocationMap = L.map('new-location-map', { zoomControl: false }).setView([6.2104, 7.0716], 11);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' }).addTo(newLocationMap);
+    setTimeout(() => newLocationMap.invalidateSize(), 200);
+
+    newLocationMap.on('click', (e) => {
+      const { lat, lng } = e.latlng;
+      if (newLocationMarker) { newLocationMarker.setLatLng([lat, lng]); }
+      else {
+        newLocationMarker = L.marker([lat, lng], { draggable: true }).addTo(newLocationMap);
+        newLocationMarker.on('dragend', () => {
+          const pos = newLocationMarker.getLatLng();
+          newLocationCoords = { lat: pos.lat, lng: pos.lng };
+          checkNewLocationReady();
+        });
+      }
+      newLocationCoords = { lat, lng };
+      checkNewLocationReady();
+    });
+
+    document.getElementById('new_location_name').addEventListener('input', checkNewLocationReady);
+    document.getElementById('locations-search-input').addEventListener('input', (e) => {
+      const term = e.target.value.trim().toLowerCase();
+      const filtered = term ? allLocations.filter(l => l.name.toLowerCase().includes(term)) : allLocations;
+      renderLocationsList(filtered);
+    });
+  }
+
+  function checkNewLocationReady() {
+    const name = document.getElementById('new_location_name').value.trim();
+    document.getElementById('save-new-location-btn').disabled = !(name.length > 1 && newLocationCoords);
+  }
+
+  document.getElementById('save-new-location-btn').addEventListener('click', async () => {
+    const btn = document.getElementById('save-new-location-btn');
+    const msg = document.getElementById('new-location-msg');
+    const name = document.getElementById('new_location_name').value.trim();
+
+    if (!name || !newLocationCoords) return;
+
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+    msg.className = 'form-msg';
+
+    const { error } = await supabaseClient.from('locations').insert({
+      name, lat: newLocationCoords.lat, lng: newLocationCoords.lng
+    });
+
+    btn.disabled = false;
+    btn.textContent = 'Save location';
+
+    if (error) {
+      msg.textContent = 'Could not save: ' + error.message;
+      msg.className = 'form-msg error';
+    } else {
+      msg.textContent = `"${name}" saved to your address book.`;
+      msg.className = 'form-msg success';
+      document.getElementById('new_location_name').value = '';
+      if (newLocationMarker) { newLocationMap.removeLayer(newLocationMarker); newLocationMarker = null; }
+      newLocationCoords = null;
+      checkNewLocationReady();
+      loadAllLocations();
+    }
+  });
+
+  async function loadAllLocations() {
+    const { data, error } = await supabaseClient
+      .from('locations')
+      .select('id, name, lat, lng')
+      .order('created_at', { ascending: false });
+
+    if (error || !data) { allLocations = []; renderLocationsList([]); return; }
+
+    allLocations = data;
+    document.getElementById('locations-count').textContent = `${data.length} total`;
+    renderLocationsList(data);
+  }
+
+  function renderLocationsList(list) {
+    const container = document.getElementById('locations-list');
+    if (!list || list.length === 0) {
+      container.innerHTML = `<div class="empty-state"><p>No saved locations match yet.</p></div>`;
+      return;
+    }
+
+    container.innerHTML = list.map(loc => `
+      <div class="rider-row">
+        <div class="rider-avatar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><path d="M12 2C7.58 2 4 5.58 4 10c0 5.25 8 12 8 12s8-6.75 8-12c0-4.42-3.58-8-8-8z"/><circle cx="12" cy="10" r="3"/></svg></div>
+        <div class="rider-info">
+          <div class="rider-info-name">${loc.name}</div>
+          <div class="rider-info-meta">${loc.lat.toFixed(4)}, ${loc.lng.toFixed(4)}</div>
+        </div>
+      </div>
+    `).join('');
+  }
 
   setInterval(() => { if (currentBusiness) { loadDeliveries(); loadRiders(); } }, 5000);
 </script>
