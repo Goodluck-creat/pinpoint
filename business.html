@@ -177,119 +177,89 @@
   /* ================= DASHBOARD SHELL ================= */
   .dashboard-shell {
     display: flex;
+    flex-direction: column;
     height: 100vh;
   }
 
-  /* ---- Sidebar ---- */
-  .sidebar {
-    width: 240px;
-    flex-shrink: 0;
-    background: var(--brand);
-    color: var(--cream);
+  /* ---- Top header ---- */
+  .top-header {
     display: flex;
-    flex-direction: column;
-    padding: 22px 16px;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 24px;
+    background: var(--brand);
+    flex-shrink: 0;
   }
 
-  .sidebar-brand {
+  .top-header-brand {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 0 8px;
-    margin-bottom: 28px;
   }
-  .sidebar-brand-name { font-size: 17px; font-weight: 700; color: #fff; }
+  .top-header-brand-name { font-size: 16px; font-weight: 700; color: #fff; }
 
-  .sidebar-nav {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    flex: 1;
-  }
-
-  .nav-item {
+  .top-header-right {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 11px 12px;
-    border-radius: 10px;
+    gap: 14px;
+  }
+
+  .top-header-business {
     font-size: 13px;
     font-weight: 600;
     color: var(--cream-dim);
-    cursor: pointer;
-    transition: background 0.15s ease, color 0.15s ease;
-    border: none;
-    background: none;
-    width: 100%;
-    text-align: left;
   }
-  .nav-item svg { width: 17px; height: 17px; flex-shrink: 0; }
-  .nav-item:hover { background: var(--brand-light); color: #fff; }
-  .nav-item.active { background: var(--primary); color: #fff; }
-
-  .sidebar-footer {
-    border-top: 1px solid var(--brand-light);
-    padding-top: 14px;
-    margin-top: 14px;
-  }
-
-  .sidebar-business-name {
-    font-size: 13px;
-    font-weight: 600;
-    color: #fff;
-    margin-bottom: 2px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .sidebar-status {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 11px;
-    color: var(--cream-dim);
-    margin-bottom: 12px;
-  }
-  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--live); }
 
   .logout-link {
     font-size: 12px;
     font-weight: 600;
     color: var(--cream-dim);
     background: none;
-    border: none;
+    border: 1px solid var(--brand-light);
+    border-radius: 100px;
+    padding: 6px 14px;
     cursor: pointer;
-    padding: 0;
   }
-  .logout-link:hover { color: #fff; }
+  .logout-link:hover { color: #fff; border-color: var(--cream-dim); }
 
-  /* Mobile: collapse sidebar into a top bar */
-  .mobile-topbar { display: none; }
-
-  @media (max-width: 900px) {
-    .dashboard-shell { flex-direction: column; }
-    .sidebar {
-      width: 100%;
-      flex-direction: row;
-      align-items: center;
-      padding: 12px 16px;
-      overflow-x: auto;
-    }
-    .sidebar-brand, .sidebar-footer { display: none; }
-    .sidebar-nav { flex-direction: row; flex: none; }
-    .nav-item { white-space: nowrap; }
+  /* ---- Bottom app-style tab bar ---- */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    display: flex;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -4px 16px rgba(15,23,42,0.06);
+    z-index: 30;
   }
+
+  .nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 10px 0 12px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--slate-light);
+    cursor: pointer;
+    border: none;
+    background: none;
+    transition: color 0.15s ease;
+  }
+  .nav-item svg { width: 20px; height: 20px; flex-shrink: 0; }
+  .nav-item.active { color: var(--primary-dark); }
 
   /* ---- Main content ---- */
   .main-content {
     flex: 1;
     overflow-y: auto;
-    padding: 32px 40px 60px;
+    padding: 32px 40px 90px;
   }
 
   @media (max-width: 700px) {
-    .main-content { padding: 20px; }
+    .main-content { padding: 20px 20px 90px; }
   }
 
   .content-section { display: none; animation: fade-in 0.3s ease; }
@@ -496,43 +466,18 @@
 <!-- ================= DASHBOARD SHELL ================= -->
 <div class="dashboard-shell" id="dashboard-view" style="display:none;">
 
-  <aside class="sidebar">
-    <div class="sidebar-brand">
+  <header class="top-header">
+    <div class="top-header-brand">
       <div class="brand-mark">
         <svg viewBox="0 0 24 24" fill="none"><path d="M12 2C7.58 2 4 5.58 4 10c0 5.25 8 12 8 12s8-6.75 8-12c0-4.42-3.58-8-8-8z" fill="white"/><circle cx="12" cy="10" r="3" fill="#16302A"/></svg>
       </div>
-      <span class="sidebar-brand-name">PinPoint</span>
+      <span class="top-header-brand-name">PinPoint</span>
     </div>
-
-    <nav class="sidebar-nav">
-      <button class="nav-item active" data-section="section-overview">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
-        Overview
-      </button>
-      <button class="nav-item" data-section="section-create">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-        Create Delivery
-      </button>
-      <button class="nav-item" data-section="section-deliveries">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"/></svg>
-        Deliveries
-      </button>
-      <button class="nav-item" data-section="section-riders">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
-        Riders
-      </button>
-      <button class="nav-item" data-section="section-analytics">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
-        Analytics
-      </button>
-    </nav>
-
-    <div class="sidebar-footer">
-      <div class="sidebar-status"><span class="status-dot"></span>Connected</div>
-      <div class="sidebar-business-name" id="business-name-label">Business</div>
+    <div class="top-header-right">
+      <span class="top-header-business" id="business-name-label">Business</span>
       <button class="logout-link" id="logout-btn">Log out</button>
     </div>
-  </aside>
+  </header>
 
   <main class="main-content">
 
@@ -703,6 +648,29 @@
     </div>
 
   </main>
+
+  <nav class="bottom-nav">
+    <button class="nav-item active" data-section="section-overview">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+      Overview
+    </button>
+    <button class="nav-item" data-section="section-create">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+      Create
+    </button>
+    <button class="nav-item" data-section="section-deliveries">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"/></svg>
+      Deliveries
+    </button>
+    <button class="nav-item" data-section="section-riders">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
+      Riders
+    </button>
+    <button class="nav-item" data-section="section-analytics">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+      Analytics
+    </button>
+  </nav>
 </div>
 
 <script>
