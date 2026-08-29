@@ -18,6 +18,9 @@
     --primary: #2454FF;
     --primary-dark: #1A3FD1;
     --primary-tint: #EEF2FF;
+    --coral: #FF6B5B;
+    --coral-dark: #E8503F;
+    --coral-tint: #FFEEEC;
     --live: #00C896;
     --live-tint: #E6FBF4;
     --warn: #F59E0B;
@@ -105,6 +108,50 @@
     display: inline-block;
     box-shadow: 0 0 0 3px var(--live-tint);
   }
+
+  /* ---------- Online/Offline toggle ---------- */
+  .status-toggle-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .toggle-switch {
+    position: relative;
+    width: 42px;
+    height: 24px;
+    border-radius: 100px;
+    background: var(--border);
+    cursor: pointer;
+    transition: background 0.25s ease;
+    flex-shrink: 0;
+  }
+
+  .toggle-switch.on {
+    background: var(--live);
+  }
+
+  .toggle-switch::after {
+    content: '';
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+    transition: transform 0.25s ease;
+  }
+
+  .toggle-switch.on::after {
+    transform: translateX(18px);
+  }
+
+  .toggle-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--slate);
+  }
+  .toggle-label.on { color: #067A5C; }
 
   .container {
     max-width: 480px;
@@ -207,12 +254,67 @@
     margin: 24px 0 14px;
   }
 
+  .stats-toggle-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 24px 0 14px;
+  }
+
+  .stats-toggle-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--primary);
+    background: var(--primary-tint);
+    border: none;
+    padding: 7px 12px;
+    border-radius: 100px;
+    cursor: pointer;
+  }
+  .stats-toggle-btn svg { width: 13px; height: 13px; }
+
+  .stats-panel {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 20px;
+    animation: card-rise 0.3s ease;
+  }
+
+  .mini-stat {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+  }
+  .mini-stat-value {
+    font-size: 22px;
+    font-weight: 700;
+    font-family: 'Space Grotesk', sans-serif;
+    margin-bottom: 2px;
+  }
+  .mini-stat-label { font-size: 11px; color: var(--slate-light); }
+  .mini-stat-value.green { color: #067A5C; }
+  .mini-stat-value.red { color: #B91C1C; }
+  .mini-stat-value.amber { color: #B7791F; }
+
   .delivery-card {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 22px;
     margin-bottom: 16px;
+    animation: card-rise 0.35s ease;
+    transition: box-shadow 0.2s ease;
+  }
+  .delivery-card:hover { box-shadow: 0 8px 20px -6px rgba(15,23,42,0.1); }
+
+  @keyframes card-rise {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 
   .delivery-top {
@@ -236,6 +338,7 @@
   .tag.accepted { background: var(--primary-tint); color: var(--primary); }
   .tag.live { background: var(--live-tint); color: #067A5C; }
   .tag.delivered { background: #F1F5F9; color: var(--slate); }
+  .tag.failed { background: #FEF2F2; color: #B91C1C; }
 
   .delivery-customer { font-size: 17px; font-weight: 600; margin-bottom: 6px; }
 
@@ -334,6 +437,35 @@
     display: none;
   }
 
+  .report-issue-link {
+    width: 100%;
+    background: none;
+    border: none;
+    font-size: 12px;
+    color: var(--slate-light);
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 6px 0;
+  }
+
+  .report-panel {
+    background: #FEF2F2;
+    border: 1.5px dashed #FCA5A5;
+    border-radius: 12px;
+    padding: 14px;
+    margin-top: 8px;
+  }
+  .report-panel label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; }
+  .report-panel input {
+    width: 100%;
+    padding: 10px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    font-size: 13px;
+    margin-bottom: 10px;
+  }
+  .action-btn.report { background: #B91C1C; color: #fff; }
+
   /* ---------- Consent banner ---------- */
   .consent-banner {
     background: var(--warn-tint);
@@ -378,6 +510,139 @@
     margin-bottom: 12px;
   }
 
+  /* ---------- Navigation-style active delivery screen ---------- */
+  .nav-screen {
+    background: var(--ink);
+    border-radius: 20px;
+    padding: 22px;
+    margin-bottom: 14px;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .nav-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 18px;
+  }
+
+  .nav-distance {
+    font-size: 34px;
+    font-weight: 700;
+    font-family: 'Space Grotesk', sans-serif;
+    line-height: 1;
+  }
+
+  .nav-distance-label {
+    font-size: 12px;
+    color: rgba(255,255,255,0.55);
+    margin-top: 4px;
+  }
+
+  .nav-compass {
+    width: 46px; height: 46px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.1);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .nav-compass svg {
+    width: 22px; height: 22px;
+    transition: transform 0.4s ease;
+  }
+
+  .nav-eta-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: rgba(255,255,255,0.7);
+    margin-bottom: 16px;
+  }
+
+  .nav-eta-row strong { color: #fff; font-weight: 700; }
+
+  .nav-pills {
+    display: flex;
+    gap: 8px;
+  }
+
+  .nav-pill {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+    border: none;
+    padding: 11px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .nav-pill svg { width: 13px; height: 13px; }
+  .nav-pill.recording { background: var(--coral); }
+
+  /* ---------- Swipe to complete ---------- */
+  .swipe-track {
+    position: relative;
+    width: 100%;
+    height: 56px;
+    background: var(--coral-tint);
+    border-radius: 100px;
+    margin-top: 12px;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  .swipe-track-label {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--coral-dark);
+    pointer-events: none;
+  }
+
+  .swipe-thumb {
+    position: absolute;
+    top: 4px; left: 4px;
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    background: var(--coral);
+    display: flex; align-items: center; justify-content: center;
+    cursor: grab;
+    box-shadow: 0 3px 10px rgba(255,107,91,0.4);
+    touch-action: none;
+    transition: left 0.2s ease;
+  }
+  .swipe-thumb.dragging { transition: none; cursor: grabbing; }
+  .swipe-thumb svg { width: 20px; height: 20px; stroke: #fff; }
+
+  .swipe-track.complete { background: var(--live-tint); }
+  .swipe-track.complete .swipe-track-label { color: #067A5C; }
+
+  .wrong-direction-alert {
+    background: #FEF2F2;
+    border: 1.5px solid #FCA5A5;
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #B91C1C;
+    display: none;
+  }
+  .wrong-direction-alert.visible { display: block; }
+
   .pulse-dot {
     width: 7px; height: 7px;
     border-radius: 50%;
@@ -412,7 +677,10 @@
     <span class="brand-tag">Rider</span>
   </div>
   <div class="rider-chip" id="rider-chip" style="display:none;">
-    <span class="status-dot"></span>
+    <div class="status-toggle-wrap">
+      <div class="toggle-switch" id="online-toggle"></div>
+      <span class="toggle-label" id="online-toggle-label">Offline</span>
+    </div>
     <span id="rider-email-label"></span>
   </div>
 </header>
@@ -437,7 +705,14 @@
 
   <!-- Signed-in view -->
   <div id="app-view" style="display:none;">
-    <div class="section-title">My Deliveries</div>
+    <div class="stats-toggle-row">
+      <div class="section-title" style="margin:0;">My Deliveries</div>
+      <button class="stats-toggle-btn" id="stats-toggle-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+        My Stats
+      </button>
+    </div>
+    <div class="stats-panel" id="stats-panel" style="display:none;"></div>
     <div id="deliveries-container">
       <div class="empty-state">Loading your deliveries…</div>
     </div>
@@ -465,6 +740,7 @@
   const signinMsg = document.getElementById('signin-msg');
 
   let currentRider = null;
+  let lastLoadedDeliveries = [];
   let watchId = null;
   let refreshTimer = null;
   let interactionLocked = false; // true while a completion panel is open, so refresh doesn't wipe it out
@@ -477,10 +753,12 @@
     picked_up: 'Picked up',
     in_transit: 'In transit',
     arriving: 'Arriving',
-    delivered: 'Delivered'
+    delivered: 'Delivered',
+    failed: 'Failed'
   };
 
   function tagClass(d) {
+    if (d.status === 'failed') return 'failed';
     if (d.status === 'delivered') return 'delivered';
     if (d.tracking_approved || ['picked_up', 'in_transit', 'arriving'].includes(d.status)) return 'live';
     if (d.status === 'assigned') return 'assigned';
@@ -533,9 +811,77 @@
     }
 
     currentRider = riderRows[0];
+    setupOnlineToggle();
     loadDeliveries();
     if (refreshTimer) clearInterval(refreshTimer);
     refreshTimer = setInterval(loadDeliveries, 4000);
+  }
+
+  document.getElementById('stats-toggle-btn').addEventListener('click', async () => {
+    const panel = document.getElementById('stats-panel');
+    const opening = panel.style.display === 'none';
+    panel.style.display = opening ? 'grid' : 'none';
+    if (opening) await loadRiderStats();
+  });
+
+  async function loadRiderStats() {
+    const panel = document.getElementById('stats-panel');
+    panel.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1; padding:24px;">Loading stats…</div>`;
+
+    const { data } = await supabaseClient
+      .from('deliveries')
+      .select('status, rating, created_at, delivered_at')
+      .eq('rider_id', currentRider.id);
+
+    if (!data) { panel.innerHTML = ''; return; }
+
+    const total = data.length;
+    const delivered = data.filter(d => d.status === 'delivered');
+    const failed = data.filter(d => d.status === 'failed').length;
+    const successRate = total > 0 ? Math.round((delivered.length / total) * 100) : 0;
+
+    const ratedDeliveries = delivered.filter(d => d.rating);
+    const avgRating = ratedDeliveries.length > 0
+      ? (ratedDeliveries.reduce((sum, d) => sum + d.rating, 0) / ratedDeliveries.length).toFixed(1)
+      : '—';
+
+    const timedDeliveries = delivered.filter(d => d.delivered_at);
+    const avgMinutes = timedDeliveries.length > 0
+      ? Math.round(timedDeliveries.reduce((sum, d) => sum + (new Date(d.delivered_at) - new Date(d.created_at)) / 60000, 0) / timedDeliveries.length)
+      : null;
+
+    panel.innerHTML = `
+      <div class="mini-stat"><div class="mini-stat-value">${total}</div><div class="mini-stat-label">Total deliveries</div></div>
+      <div class="mini-stat"><div class="mini-stat-value green">${delivered.length}</div><div class="mini-stat-label">Delivered</div></div>
+      <div class="mini-stat"><div class="mini-stat-value red">${failed}</div><div class="mini-stat-label">Failed</div></div>
+      <div class="mini-stat"><div class="mini-stat-value amber">${successRate}%</div><div class="mini-stat-label">Success rate</div></div>
+      <div class="mini-stat"><div class="mini-stat-value">${avgRating}${avgRating !== '—' ? ' ★' : ''}</div><div class="mini-stat-label">Avg rating</div></div>
+      <div class="mini-stat"><div class="mini-stat-value">${avgMinutes ? avgMinutes + ' min' : '—'}</div><div class="mini-stat-label">Avg delivery time</div></div>
+    `;
+  }
+
+  function setupOnlineToggle() {
+    const toggle = document.getElementById('online-toggle');
+    const label = document.getElementById('online-toggle-label');
+    const isOnline = currentRider.status === 'online';
+
+    toggle.classList.toggle('on', isOnline);
+    label.classList.toggle('on', isOnline);
+    label.textContent = isOnline ? 'Online' : 'Offline';
+
+    toggle.onclick = async () => {
+      const nowOnline = !toggle.classList.contains('on');
+      toggle.classList.toggle('on', nowOnline);
+      label.classList.toggle('on', nowOnline);
+      label.textContent = nowOnline ? 'Online' : 'Offline';
+
+      await supabaseClient
+        .from('riders')
+        .update({ status: nowOnline ? 'online' : 'offline' })
+        .eq('id', currentRider.id);
+
+      currentRider.status = nowOnline ? 'online' : 'offline';
+    };
   }
 
   function handleSignedOut() {
@@ -555,7 +901,7 @@
       .from('deliveries')
       .select('*')
       .eq('rider_id', currentRider.id)
-      .neq('status', 'delivered')
+      .not('status', 'in', '("delivered","failed")')
       .order('created_at', { ascending: false });
 
     if (error || !data || data.length === 0) {
@@ -563,8 +909,10 @@
       return;
     }
 
+    lastLoadedDeliveries = data;
     deliveriesContainer.innerHTML = data.map(d => renderDeliveryCard(d)).join('');
     attachCardHandlers(data);
+    setupSwipeGestures();
 
     // If any delivery has tracking approved, make sure GPS streaming is running
     const trackingDelivery = data.find(d => d.tracking_approved);
@@ -593,12 +941,42 @@
 
     if (d.tracking_approved && d.status !== 'delivered') {
       actionsHtml += `
-        <div class="live-indicator"><span class="pulse-dot"></span>Sharing live location</div>
-        <button class="voice-btn" data-action="voice" data-id="${d.id}" id="voice-btn-${d.id}">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4"/></svg>
-          Send voice update
-        </button>
-        <button class="action-btn finish" data-action="show-complete" data-id="${d.id}">Mark as delivered</button>
+        <div class="nav-screen">
+          <div class="nav-top">
+            <div>
+              <div class="nav-distance" id="nav-distance-${d.id}">—</div>
+              <div class="nav-distance-label">to destination</div>
+            </div>
+            <div class="nav-compass">
+              <svg id="nav-compass-${d.id}" viewBox="0 0 24 24" fill="none"><path d="M12 2 L16 12 L12 9 L8 12 Z" fill="var(--coral)"/></svg>
+            </div>
+          </div>
+          <div class="nav-eta-row">
+            <span>ETA <strong id="nav-eta-${d.id}">—</strong></span>
+            <span>·</span>
+            <span><span class="pulse-dot"></span> Sharing live location</span>
+          </div>
+          <div class="nav-pills">
+            <button class="nav-pill" data-action="voice" data-id="${d.id}" id="voice-btn-${d.id}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4"/></svg>
+              Voice update
+            </button>
+            <button class="nav-pill" data-action="show-report" data-id="${d.id}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+              Report issue
+            </button>
+          </div>
+        </div>
+
+        <div class="wrong-direction-alert" id="wrong-direction-${d.id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;vertical-align:-2px;margin-right:4px;"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>You may be moving off the expected route — check the destination.</div>
+
+        <div class="swipe-track" id="swipe-track-${d.id}">
+          <div class="swipe-track-label">Swipe to complete delivery</div>
+          <div class="swipe-thumb" id="swipe-thumb-${d.id}" data-id="${d.id}">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+          </div>
+        </div>
+
         <div class="complete-panel" id="complete-panel-${d.id}" style="display:none;">
           <label>Proof of delivery photo</label>
           <input type="file" accept="image/*" capture="environment" id="proof-photo-${d.id}">
@@ -607,13 +985,20 @@
           <input type="text" maxlength="4" placeholder="0000" id="pin-input-${d.id}">
           <div class="pin-error" id="pin-error-${d.id}">That code doesn't match. Please confirm with the customer.</div>
           <button class="action-btn finish" data-action="confirm-deliver" data-id="${d.id}">Confirm delivery</button>
+          <button class="report-issue-link" data-action="cancel-complete" data-id="${d.id}">Cancel</button>
+        </div>
+        <div class="report-panel" id="report-panel-${d.id}" style="display:none;">
+          <label>What went wrong?</label>
+          <input type="text" placeholder="e.g. Customer unreachable, wrong address" id="failure-reason-${d.id}">
+          <button class="action-btn report" data-action="confirm-fail" data-id="${d.id}">Mark as failed</button>
         </div>`;
     } else if (d.status === 'accepted') {
       actionsHtml += `<div class="empty-state" style="padding:16px; font-size:13px;">Waiting for customer to request tracking…</div>`;
     }
 
-    const pickupLandmark = d.pickup_landmark ? `<div class="landmark-line">📍 ${d.pickup_landmark}</div>` : '';
-    const destLandmark = d.destination_landmark ? `<div class="landmark-line">📍 ${d.destination_landmark}</div>` : '';
+    const landmarkIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:11px;height:11px;vertical-align:-1px;margin-right:3px;"><path d="M12 2C7.58 2 4 5.58 4 10c0 5.25 8 12 8 12s8-6.75 8-12c0-4.42-3.58-8-8-8z"/><circle cx="12" cy="10" r="3"/></svg>`;
+    const pickupLandmark = d.pickup_landmark ? `<div class="landmark-line">${landmarkIcon}${d.pickup_landmark}</div>` : '';
+    const destLandmark = d.destination_landmark ? `<div class="landmark-line">${landmarkIcon}${d.destination_landmark}</div>` : '';
 
     return `
       <div class="delivery-card">
@@ -679,6 +1064,62 @@
     }
   }
 
+  function resetSwipeThumb(deliveryId) {
+    const thumb = document.getElementById(`swipe-thumb-${deliveryId}`);
+    if (thumb) thumb.style.left = '4px';
+  }
+
+  function setupSwipeGestures() {
+    document.querySelectorAll('.swipe-thumb').forEach(thumb => {
+      const deliveryId = thumb.dataset.id;
+      const track = document.getElementById(`swipe-track-${deliveryId}`);
+      if (!track) return;
+
+      let startX = 0;
+      let currentX = 4;
+      let dragging = false;
+      const maxX = track.offsetWidth - thumb.offsetWidth - 8;
+
+      thumb.addEventListener('pointerdown', (e) => {
+        dragging = true;
+        startX = e.clientX - currentX;
+        thumb.classList.add('dragging');
+        thumb.setPointerCapture(e.pointerId);
+        interactionLocked = true; // pause refresh mid-swipe
+      });
+
+      thumb.addEventListener('pointermove', (e) => {
+        if (!dragging) return;
+        let x = e.clientX - startX;
+        x = Math.max(4, Math.min(x, maxX));
+        currentX = x;
+        thumb.style.left = `${x}px`;
+      });
+
+      const endDrag = () => {
+        if (!dragging) return;
+        dragging = false;
+        thumb.classList.remove('dragging');
+
+        if (currentX >= maxX - 6) {
+          // Swipe completed — open the proof/PIN panel to finish verification
+          track.classList.add('complete');
+          track.querySelector('.swipe-track-label').textContent = 'Confirm below ↓';
+          const panel = document.getElementById(`complete-panel-${deliveryId}`);
+          if (panel) panel.style.display = 'block';
+        } else {
+          // Snap back
+          currentX = 4;
+          thumb.style.left = '4px';
+          interactionLocked = false;
+        }
+      };
+
+      thumb.addEventListener('pointerup', endDrag);
+      thumb.addEventListener('pointercancel', endDrag);
+    });
+  }
+
   function attachCardHandlers(deliveries) {
     deliveriesContainer.querySelectorAll('[data-action]').forEach(btn => {
       btn.addEventListener('click', async () => {
@@ -697,6 +1138,53 @@
             panel.style.display = opening ? 'block' : 'none';
             interactionLocked = opening; // pause refresh while the panel is open
           }
+          return;
+        }
+
+        if (action === 'cancel-complete') {
+          const panel = document.getElementById(`complete-panel-${id}`);
+          const track = document.getElementById(`swipe-track-${id}`);
+          if (panel) panel.style.display = 'none';
+          if (track) {
+            track.classList.remove('complete');
+            const label = track.querySelector('.swipe-track-label');
+            if (label) label.textContent = 'Swipe to complete delivery';
+            resetSwipeThumb(id);
+          }
+          interactionLocked = false;
+          return;
+        }
+
+        if (action === 'show-report') {
+          const panel = document.getElementById(`report-panel-${id}`);
+          if (panel) {
+            const opening = panel.style.display === 'none';
+            panel.style.display = opening ? 'block' : 'none';
+            interactionLocked = opening;
+          }
+          return;
+        }
+
+        if (action === 'confirm-fail') {
+          const reason = document.getElementById(`failure-reason-${id}`).value.trim();
+          if (!reason) { alert('Please briefly describe what went wrong.'); return; }
+
+          btn.disabled = true;
+          btn.textContent = 'Reporting…';
+
+          await supabaseClient.from('deliveries').update({
+            status: 'failed',
+            failure_reason: reason,
+            tracking_approved: false
+          }).eq('id', id);
+
+          if (watchId !== null) {
+            navigator.geolocation.clearWatch(watchId);
+            watchId = null;
+          }
+
+          interactionLocked = false;
+          loadDeliveries();
           return;
         }
 
@@ -774,6 +1262,73 @@
   }
 
   // ---------- GPS streaming ----------
+  function haversineKm(lat1, lng1, lat2, lng2) {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2 +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLng / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  function bearing(lat1, lng1, lat2, lng2) {
+    const y = Math.sin((lng2 - lng1) * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180);
+    const x = Math.cos(lat1 * Math.PI / 180) * Math.sin(lat2 * Math.PI / 180) -
+      Math.sin(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.cos((lng2 - lng1) * Math.PI / 180);
+    return Math.atan2(y, x) * 180 / Math.PI;
+  }
+
+  function distanceFromRouteKm(lat, lng, lat1, lng1, lat2, lng2) {
+    const d13 = haversineKm(lat1, lng1, lat, lng);
+    const bearing13 = bearing(lat1, lng1, lat, lng);
+    const bearing12 = bearing(lat1, lng1, lat2, lng2);
+    const angle = (bearing13 - bearing12) * Math.PI / 180;
+    return Math.abs(Math.asin(Math.sin(d13 / 6371) * Math.sin(angle)) * 6371);
+  }
+
+  let offRouteStreak = 0;
+
+  function checkWrongDirection(deliveryId, lat, lng, delivery) {
+    const banner = document.getElementById(`wrong-direction-${deliveryId}`);
+    if (!banner || !delivery.pickup_lat || !delivery.destination_lat) return;
+
+    const offsetKm = distanceFromRouteKm(
+      lat, lng,
+      delivery.pickup_lat, delivery.pickup_lng,
+      delivery.destination_lat, delivery.destination_lng
+    );
+
+    if (offsetKm > 0.35) {
+      offRouteStreak++;
+    } else {
+      offRouteStreak = 0;
+    }
+
+    banner.classList.toggle('visible', offRouteStreak >= 3);
+  }
+
+  function updateNavScreen(deliveryId, lat, lng, heading, speed) {
+    const distanceEl = document.getElementById(`nav-distance-${deliveryId}`);
+    if (!distanceEl) return; // card not rendered / locked right now
+
+    const delivery = lastLoadedDeliveries.find(d => d.id === deliveryId);
+    if (!delivery || !delivery.destination_lat || !delivery.destination_lng) return;
+
+    const distKm = haversineKm(lat, lng, delivery.destination_lat, delivery.destination_lng);
+    distanceEl.textContent = distKm < 1 ? `${Math.round(distKm * 1000)} m` : `${distKm.toFixed(1)} km`;
+
+    const speedKmh = (speed && speed > 1) ? speed * 3.6 : 20;
+    const etaMinutes = Math.max(1, Math.round((distKm / speedKmh) * 60));
+    const etaEl = document.getElementById(`nav-eta-${deliveryId}`);
+    if (etaEl) etaEl.textContent = `${etaMinutes} min`;
+
+    if (heading !== null && heading !== undefined) {
+      const compass = document.getElementById(`nav-compass-${deliveryId}`);
+      if (compass) compass.style.transform = `rotate(${heading}deg)`;
+    }
+  }
+
   function startTracking(deliveryId) {
     if (watchId !== null) return; // already tracking
     if (!navigator.geolocation) return;
@@ -790,6 +1345,10 @@
           speed: speed,
           accuracy: accuracy
         });
+
+        const delivery = lastLoadedDeliveries.find(d => d.id === deliveryId);
+        if (delivery) checkWrongDirection(deliveryId, latitude, longitude, delivery);
+        updateNavScreen(deliveryId, latitude, longitude, heading, speed);
       },
       (err) => {
         console.error('Geolocation error:', err);
