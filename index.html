@@ -6,6 +6,9 @@
 <title>PinPoint — Live delivery tracking for small businesses</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root {
     --bg: #FAFBFC;
@@ -355,6 +358,83 @@
   .final-cta h2 { font-size: 32px; margin-bottom: 16px; }
   .final-cta p { font-size: 16px; color: var(--slate); margin-bottom: 30px; }
 
+  /* ---------- Address book widget ---------- */
+  .address-widget-section {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .address-widget {
+    max-width: 640px;
+    margin: 0 auto;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 36px;
+  }
+
+  @media (max-width: 700px) {
+    .address-widget { padding: 24px 20px; }
+  }
+
+  .address-widget-header { text-align: center; margin-bottom: 24px; }
+  .address-widget-header h2 { font-size: 26px; margin-bottom: 10px; }
+  .address-widget-header p { font-size: 14px; color: var(--slate); max-width: 460px; margin: 0 auto; }
+
+  .aw-field { margin-bottom: 14px; }
+  .aw-field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+  .aw-field input {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 9px;
+    font-size: 14px;
+    font-family: 'Inter', sans-serif;
+    background: var(--surface);
+  }
+  .aw-field input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-tint);
+  }
+
+  .aw-map {
+    width: 100%;
+    height: 220px;
+    border-radius: 12px;
+    border: 1.5px solid var(--border);
+    margin-bottom: 14px;
+    background: var(--border);
+  }
+
+  .aw-hint { font-size: 12px; color: var(--slate-light); margin: -6px 0 14px; }
+
+  .aw-submit {
+    width: 100%;
+    padding: 13px;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: 9px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .aw-submit:hover { background: var(--primary-dark); }
+  .aw-submit:disabled { background: var(--slate-light); cursor: not-allowed; }
+
+  .aw-msg {
+    font-size: 13px;
+    margin-top: 12px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    display: none;
+  }
+  .aw-msg.success { display: block; background: var(--live-tint); color: #067A5C; }
+  .aw-msg.duplicate { display: block; background: #FFF7E6; color: #B7791F; }
+  .aw-msg.error { display: block; background: #FEF2F2; color: #B91C1C; }
+
   /* ---------- Footer ---------- */
   footer {
     border-top: 1px solid var(--border);
@@ -480,6 +560,28 @@
   </div>
 </section>
 
+<section class="address-widget-section">
+  <div class="wrap section">
+    <div class="address-widget">
+      <div class="address-widget-header">
+        <h2>Help build Nigeria's most accurate address book</h2>
+        <p>Pin your home, shop, or a landmark you know well — it helps businesses find real addresses faster, for every delivery that comes after yours. Free, no account needed.</p>
+      </div>
+
+      <div class="aw-field">
+        <label for="aw-name">What should we call this address?</label>
+        <input type="text" id="aw-name" placeholder="e.g. Blue Gate House, Ifite Road">
+      </div>
+
+      <div class="aw-map" id="aw-map"></div>
+      <div class="aw-hint">Tap the map to drop a pin at the exact spot</div>
+
+      <button class="aw-submit" id="aw-submit" disabled>Save this address</button>
+      <div class="aw-msg" id="aw-msg"></div>
+    </div>
+  </div>
+</section>
+
 <section class="wrap final-cta">
   <h2>Give your customers a reason to trust the wait.</h2>
   <p>Set up your business in minutes — no downloads, no cost to start.</p>
@@ -492,6 +594,100 @@
     <span>pinpoint.glovatech.com.ng</span>
   </div>
 </footer>
+
+<script>
+  const SUPABASE_URL = 'https://wtxikghyylclqnhxfcvu.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_3XEbw4-lAFfIVgG-haVbGQ_Q2305QI7';
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  function haversineKm(lat1, lng1, lat2, lng2) {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2 +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLng / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  const awMap = L.map('aw-map', { zoomControl: false }).setView([6.2104, 7.0716], 11);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(awMap);
+  setTimeout(() => awMap.invalidateSize(), 300);
+
+  let awMarker = null;
+  let awCoords = null;
+  const awSubmitBtn = document.getElementById('aw-submit');
+  const awMsg = document.getElementById('aw-msg');
+
+  function checkAwReady() {
+    const name = document.getElementById('aw-name').value.trim();
+    awSubmitBtn.disabled = !(name.length > 1 && awCoords);
+  }
+
+  document.getElementById('aw-name').addEventListener('input', checkAwReady);
+
+  awMap.on('click', (e) => {
+    const { lat, lng } = e.latlng;
+    if (awMarker) {
+      awMarker.setLatLng([lat, lng]);
+    } else {
+      awMarker = L.marker([lat, lng], { draggable: true }).addTo(awMap);
+      awMarker.on('dragend', () => {
+        const pos = awMarker.getLatLng();
+        awCoords = { lat: pos.lat, lng: pos.lng };
+        checkAwReady();
+      });
+    }
+    awCoords = { lat, lng };
+    checkAwReady();
+  });
+
+  awSubmitBtn.addEventListener('click', async () => {
+    const name = document.getElementById('aw-name').value.trim();
+    if (!name || !awCoords) return;
+
+    awSubmitBtn.disabled = true;
+    awSubmitBtn.textContent = 'Checking…';
+    awMsg.className = 'aw-msg';
+
+    // Duplicate check: is there already a saved address within ~100m of this pin?
+    const { data: nearby } = await supabaseClient
+      .from('locations')
+      .select('id, name, lat, lng')
+      .gte('lat', awCoords.lat - 0.003).lte('lat', awCoords.lat + 0.003)
+      .gte('lng', awCoords.lng - 0.003).lte('lng', awCoords.lng + 0.003);
+
+    const duplicate = (nearby || []).find(loc => haversineKm(awCoords.lat, awCoords.lng, loc.lat, loc.lng) < 0.1);
+
+    if (duplicate) {
+      awMsg.textContent = `This spot is already saved as "${duplicate.name}" — thanks for double-checking!`;
+      awMsg.className = 'aw-msg duplicate';
+      awSubmitBtn.disabled = false;
+      awSubmitBtn.textContent = 'Save this address';
+      return;
+    }
+
+    const { error } = await supabaseClient.from('locations').insert({
+      name, lat: awCoords.lat, lng: awCoords.lng
+    });
+
+    awSubmitBtn.textContent = 'Save this address';
+
+    if (error) {
+      awMsg.textContent = 'Something went wrong — please try again.';
+      awMsg.className = 'aw-msg error';
+      awSubmitBtn.disabled = false;
+    } else {
+      awMsg.textContent = `"${name}" saved! Businesses can now find it when creating deliveries.`;
+      awMsg.className = 'aw-msg success';
+      document.getElementById('aw-name').value = '';
+      if (awMarker) { awMap.removeLayer(awMarker); awMarker = null; }
+      awCoords = null;
+    }
+  });
+</script>
 
 </body>
 </html>

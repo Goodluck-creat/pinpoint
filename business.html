@@ -568,10 +568,57 @@
     <span class="brand-name">PinPoint</span>
     <span class="brand-tag">Business Dashboard</span>
   </div>
-  <div class="header-right"><span class="status-dot"></span>Connected</div>
+  <div class="header-right" id="header-status" style="display:none;">
+    <span class="status-dot"></span><span id="business-name-label">Connected</span>
+  </div>
+  <button id="logout-btn" style="display:none; background:none; border:1px solid var(--border); padding:7px 14px; border-radius:8px; font-size:13px; font-weight:600; color:var(--slate); cursor:pointer; margin-left:10px;">Log out</button>
 </header>
 
-<div class="page">
+<!-- Auth gate -->
+<div id="auth-view" style="max-width:400px; margin: 70px auto; padding: 0 20px;">
+  <div class="tab-card" style="margin-bottom:0;">
+    <div class="tab-switch">
+      <button class="tab-btn active" data-authtab="login-panel">Log In</button>
+      <button class="tab-btn" data-authtab="signup-panel">Sign Up</button>
+    </div>
+
+    <div class="tab-panel active" id="login-panel">
+      <form id="login-form">
+        <div class="field">
+          <label for="login-email">Email</label>
+          <input type="email" id="login-email" required placeholder="you@business.com">
+        </div>
+        <div class="field">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" required placeholder="••••••••">
+        </div>
+        <button type="submit" class="submit-btn" id="login-btn">Log in</button>
+        <div class="form-msg" id="login-msg"></div>
+      </form>
+    </div>
+
+    <div class="tab-panel" id="signup-panel">
+      <form id="signup-form">
+        <div class="field">
+          <label for="signup-business-name">Business name</label>
+          <input type="text" id="signup-business-name" required placeholder="e.g. Chioma's Kitchen">
+        </div>
+        <div class="field">
+          <label for="signup-email">Email</label>
+          <input type="email" id="signup-email" required placeholder="you@business.com">
+        </div>
+        <div class="field">
+          <label for="signup-password">Password</label>
+          <input type="password" id="signup-password" required placeholder="At least 6 characters" minlength="6">
+        </div>
+        <button type="submit" class="submit-btn" id="signup-btn">Create account</button>
+        <div class="form-msg" id="signup-msg"></div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="dashboard-view" style="display:none;">
 
   <div class="stats-grid">
     <div class="stat-card">
@@ -727,12 +774,145 @@
 
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      const isAuthTab = btn.hasAttribute('data-authtab');
+      const targetId = isAuthTab ? btn.dataset.authtab : btn.dataset.tab;
+      const scopeSelector = isAuthTab ? '[data-authtab]' : '[data-tab]';
+
+      document.querySelectorAll(scopeSelector).forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      document.getElementById(btn.dataset.tab).classList.add('active');
+
+      const panelIds = isAuthTab ? ['login-panel', 'signup-panel'] : ['delivery-tab', 'rider-tab'];
+      panelIds.forEach(id => document.getElementById(id).classList.remove('active'));
+      document.getElementById(targetId).classList.add('active');
+
       window.dispatchEvent(new Event('resize')); // nudges Leaflet maps to redraw correctly
     });
+  });
+
+  // ---------- Business Auth ----------
+  let currentBusiness = null;
+
+  const authView = document.getElementById('auth-view');
+  const dashboardView = document.getElementById('dashboard-view');
+  const headerStatus = document.getElementById('header-status');
+  const logoutBtn = document.getElementById('logout-btn');
+  const businessNameLabel = document.getElementById('business-name-label');
+
+  async function getOrCreateBusiness(user, businessNameForSignup) {
+    const { data: existing } = await supabaseClient
+      .from('businesses')
+      .select('*')
+      .eq('auth_user_id', user.id)
+      .limit(1);
+
+    if (existing && existing.length > 0) return existing[0];
+
+    const { data: created, error } = await supabaseClient
+      .from('businesses')
+      .insert({ auth_user_id: user.id, name: businessNameForSignup || 'My Business', email: user.email })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Could not create business record:', error);
+      return null;
+    }
+    return created;
+  }
+
+  async function enterDashboard(business) {
+    currentBusiness = business;
+    authView.style.display = 'none';
+    dashboardView.style.display = 'block';
+    headerStatus.style.display = 'flex';
+    logoutBtn.style.display = 'inline-block';
+    businessNameLabel.textContent = business.name;
+
+    loadRiders();
+    loadDeliveries();
+  }
+
+  function showAuthView() {
+    currentBusiness = null;
+    authView.style.display = 'block';
+    dashboardView.style.display = 'none';
+    headerStatus.style.display = 'none';
+    logoutBtn.style.display = 'none';
+  }
+
+  document.getElementById('login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('login-btn');
+    const msg = document.getElementById('login-msg');
+    btn.disabled = true;
+    btn.textContent = 'Logging in…';
+    msg.className = 'form-msg';
+
+    const email = document.getElementById('login-email').value;
+    const password = document.getElementById('login-password').value;
+
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+
+    btn.disabled = false;
+    btn.textContent = 'Log in';
+
+    if (error) {
+      msg.textContent = error.message;
+      msg.className = 'form-msg error';
+      return;
+    }
+
+    const business = await getOrCreateBusiness(data.user);
+    if (business) enterDashboard(business);
+  });
+
+  document.getElementById('signup-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('signup-btn');
+    const msg = document.getElementById('signup-msg');
+    btn.disabled = true;
+    btn.textContent = 'Creating account…';
+    msg.className = 'form-msg';
+
+    const businessName = document.getElementById('signup-business-name').value;
+    const email = document.getElementById('signup-email').value;
+    const password = document.getElementById('signup-password').value;
+
+    const { data, error } = await supabaseClient.auth.signUp({ email, password });
+
+    btn.disabled = false;
+    btn.textContent = 'Create account';
+
+    if (error) {
+      msg.textContent = error.message;
+      msg.className = 'form-msg error';
+      return;
+    }
+
+    if (!data.session) {
+      msg.textContent = 'Account created! Check your email to confirm before logging in.';
+      msg.className = 'form-msg success';
+      return;
+    }
+
+    const business = await getOrCreateBusiness(data.user, businessName);
+    if (business) enterDashboard(business);
+  });
+
+  logoutBtn.addEventListener('click', async () => {
+    await supabaseClient.auth.signOut();
+    showAuthView();
+  });
+
+  // On load, check for an existing session (so refreshing doesn't log the business out)
+  supabaseClient.auth.getSession().then(async ({ data: { session } }) => {
+    if (session) {
+      const business = await getOrCreateBusiness(session.user);
+      if (business) enterDashboard(business);
+      else showAuthView();
+    } else {
+      showAuthView();
+    }
   });
 
   const riderSelect = document.getElementById('rider_id');
@@ -999,7 +1179,11 @@
   }
 
   async function loadRiders() {
-    const { data, error } = await supabaseClient.from('riders').select('id, name, vehicle_type, email, phone, status');
+    if (!currentBusiness) return;
+    const { data, error } = await supabaseClient
+      .from('riders')
+      .select('id, name, vehicle_type, email, phone, status')
+      .eq('business_id', currentBusiness.id);
 
     if (error || !data || data.length === 0) {
       riderSelect.innerHTML = '<option value="">No riders yet — add one first</option>';
@@ -1027,9 +1211,11 @@
   }
 
   async function loadDeliveries() {
+    if (!currentBusiness) return;
     const { data, error } = await supabaseClient
       .from('deliveries')
       .select('id, delivery_code, customer_name, pickup_address, destination_address, status, rider_id, riders(name)')
+      .eq('business_id', currentBusiness.id)
       .order('created_at', { ascending: false });
 
     if (error || !data || data.length === 0) {
@@ -1101,6 +1287,7 @@
     const payload = {
       delivery_code: generateDeliveryCode(),
       handoff_pin: generateHandoffPin(),
+      business_id: currentBusiness.id,
       customer_name: document.getElementById('customer_name').value,
       customer_phone: document.getElementById('customer_phone').value,
       package_description: document.getElementById('package_description').value,
@@ -1226,7 +1413,7 @@
       .eq('email', email)
       .limit(1);
 
-    const riderFields = { name, phone, vehicle_type };
+    const riderFields = { name, phone, vehicle_type, business_id: currentBusiness.id };
     if (photo_url) riderFields.photo_url = photo_url;
 
     let insertError = null;
