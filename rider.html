@@ -11,18 +11,22 @@
   :root {
     --bg: #FAFBFC;
     --surface: #FFFFFF;
-    --ink: #0F172A;
+    --ink: #16302A;
     --slate: #64748B;
     --slate-light: #94A3B8;
     --border: #E5E9F0;
-    --primary: #2454FF;
-    --primary-dark: #1A3FD1;
-    --primary-tint: #EEF2FF;
+    --brand: #16302A;
+    --brand-light: #1F4239;
+    --cream: #F7F3EA;
+    --cream-dim: #C7D6CC;
+    --primary: #E8A33D;
+    --primary-dark: #D68A28;
+    --primary-tint: #FDF3E2;
     --coral: #FF6B5B;
     --coral-dark: #E8503F;
     --coral-tint: #FFEEEC;
-    --live: #00C896;
-    --live-tint: #E6FBF4;
+    --live: #16A34A;
+    --live-tint: #ECFDF3;
     --warn: #F59E0B;
     --warn-tint: #FFF7E6;
     --radius: 16px;
@@ -51,8 +55,7 @@
     justify-content: space-between;
     gap: 10px;
     padding: 14px 16px;
-    border-bottom: 1px solid var(--border);
-    background: var(--surface);
+    background: var(--brand);
     position: sticky;
     top: 0;
     z-index: 10;
@@ -63,21 +66,21 @@
   .brand-mark {
     width: 30px; height: 30px;
     border-radius: 8px;
-    background: linear-gradient(135deg, var(--primary), #5B7FFF);
+    background: linear-gradient(135deg, var(--primary), #F4C06B);
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
   }
   .brand-mark svg { width: 16px; height: 16px; }
 
-  .brand-name { font-size: 16px; font-weight: 700; white-space: nowrap; }
+  .brand-name { font-size: 16px; font-weight: 700; white-space: nowrap; color: #fff; }
 
   .brand-tag {
     font-size: 12px;
-    color: var(--slate);
+    color: var(--cream-dim);
     font-weight: 500;
     padding-left: 8px;
     margin-left: 8px;
-    border-left: 1px solid var(--border);
+    border-left: 1px solid var(--brand-light);
     white-space: nowrap;
   }
 
@@ -87,7 +90,7 @@
 
   .rider-chip {
     font-size: 12px;
-    color: var(--slate);
+    color: var(--cream-dim);
     display: flex;
     align-items: center;
     gap: 6px;
@@ -254,27 +257,35 @@
     margin: 24px 0 14px;
   }
 
-  .stats-toggle-row {
+  .bottom-tabbar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin: 24px 0 14px;
+    z-index: 20;
+    box-shadow: 0 -4px 16px rgba(15,23,42,0.06);
   }
 
-  .stats-toggle-btn {
+  .bottom-tab {
+    flex: 1;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 6px;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--primary);
-    background: var(--primary-tint);
+    gap: 4px;
+    padding: 10px 0 12px;
+    background: none;
     border: none;
-    padding: 7px 12px;
-    border-radius: 100px;
     cursor: pointer;
+    color: var(--slate-light);
+    font-size: 11px;
+    font-weight: 600;
   }
-  .stats-toggle-btn svg { width: 13px; height: 13px; }
+  .bottom-tab svg { width: 20px; height: 20px; }
+  .bottom-tab.active { color: var(--primary-dark); }
+
+  .rider-tab-panel { display: none; }
+  .rider-tab-panel.active { display: block; }
 
   .stats-panel {
     display: grid;
@@ -671,7 +682,7 @@
 <header>
   <div class="brand">
     <div class="brand-mark">
-      <svg viewBox="0 0 24 24" fill="none"><path d="M12 2C7.58 2 4 5.58 4 10c0 5.25 8 12 8 12s8-6.75 8-12c0-4.42-3.58-8-8-8z" fill="white"/><circle cx="12" cy="10" r="3" fill="#2454FF"/></svg>
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 2C7.58 2 4 5.58 4 10c0 5.25 8 12 8 12s8-6.75 8-12c0-4.42-3.58-8-8-8z" fill="white"/><circle cx="12" cy="10" r="3" fill="#16302A"/></svg>
     </div>
     <span class="brand-name">PinPoint</span>
     <span class="brand-tag">Rider</span>
@@ -691,7 +702,7 @@
   <div id="signin-view" style="display:none;">
     <div class="signin-card">
       <div class="icon-circle">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2454FF" stroke-width="2" stroke-linecap="round"><path d="M4 4h16v16H4z" opacity="0"/><path d="M22 6l-10 7L2 6"/><path d="M2 6h20v12H2z"/></svg>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#E8A33D" stroke-width="2" stroke-linecap="round"><path d="M4 4h16v16H4z" opacity="0"/><path d="M22 6l-10 7L2 6"/><path d="M2 6h20v12H2z"/></svg>
       </div>
       <h2>Sign in to PinPoint</h2>
       <p>Enter your email and we'll send you a sign-in link. No password needed.</p>
@@ -704,18 +715,31 @@
   </div>
 
   <!-- Signed-in view -->
-  <div id="app-view" style="display:none;">
-    <div class="stats-toggle-row">
-      <div class="section-title" style="margin:0;">My Deliveries</div>
-      <button class="stats-toggle-btn" id="stats-toggle-btn">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
-        My Stats
-      </button>
+  <div id="app-view" style="display:none; padding-bottom: 70px;">
+
+    <div class="rider-tab-panel active" id="tab-deliveries">
+      <div class="section-title">My Deliveries</div>
+      <div id="deliveries-container">
+        <div class="empty-state">Loading your deliveries…</div>
+      </div>
     </div>
-    <div class="stats-panel" id="stats-panel" style="display:none;"></div>
-    <div id="deliveries-container">
-      <div class="empty-state">Loading your deliveries…</div>
+
+    <div class="rider-tab-panel" id="tab-stats">
+      <div class="section-title">My Stats</div>
+      <div class="stats-panel" id="stats-panel"></div>
     </div>
+
+  </div>
+
+  <div class="bottom-tabbar" id="bottom-tabbar" style="display:none;">
+    <button class="bottom-tab active" data-ridertab="tab-deliveries">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"/></svg>
+      Deliveries
+    </button>
+    <button class="bottom-tab" data-ridertab="tab-stats">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+      Stats
+    </button>
   </div>
 
 </div>
@@ -797,6 +821,7 @@
     riderChip.style.display = 'flex';
     signinView.style.display = 'none';
     appView.style.display = 'block';
+    document.getElementById('bottom-tabbar').style.display = 'flex';
 
     // Find the rider record matching this email
     const { data: riderRows, error: riderError } = await supabaseClient
@@ -817,11 +842,14 @@
     refreshTimer = setInterval(loadDeliveries, 4000);
   }
 
-  document.getElementById('stats-toggle-btn').addEventListener('click', async () => {
-    const panel = document.getElementById('stats-panel');
-    const opening = panel.style.display === 'none';
-    panel.style.display = opening ? 'grid' : 'none';
-    if (opening) await loadRiderStats();
+  document.querySelectorAll('.bottom-tab').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      document.querySelectorAll('.bottom-tab').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.rider-tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(btn.dataset.ridertab).classList.add('active');
+      if (btn.dataset.ridertab === 'tab-stats') await loadRiderStats();
+    });
   });
 
   async function loadRiderStats() {
@@ -888,6 +916,7 @@
     signinView.style.display = 'block';
     appView.style.display = 'none';
     riderChip.style.display = 'none';
+    document.getElementById('bottom-tabbar').style.display = 'none';
     if (refreshTimer) clearInterval(refreshTimer);
     if (watchId !== null) navigator.geolocation.clearWatch(watchId);
   }

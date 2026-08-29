@@ -13,15 +13,19 @@
   :root {
     --bg: #FAFBFC;
     --surface: #FFFFFF;
-    --ink: #0F172A;
+    --ink: #16302A;
     --slate: #64748B;
     --slate-light: #94A3B8;
     --border: #E5E9F0;
-    --primary: #2454FF;
-    --primary-dark: #1A3FD1;
-    --primary-tint: #EEF2FF;
-    --live: #00C896;
-    --live-tint: #E6FBF4;
+    --brand: #16302A;
+    --brand-light: #1F4239;
+    --cream: #F7F3EA;
+    --cream-dim: #C7D6CC;
+    --primary: #E8A33D;
+    --primary-dark: #D68A28;
+    --primary-tint: #FDF3E2;
+    --live: #16A34A;
+    --live-tint: #ECFDF3;
     --radius: 16px;
   }
 
@@ -62,10 +66,36 @@
     position: sticky;
     top: 0;
     z-index: 20;
-    background: rgba(250, 251, 252, 0.85);
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid var(--border);
+    background: transparent;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
   }
+
+  .dark-hero-wrap {
+    background: var(--brand);
+    background-image: radial-gradient(circle at 15% 20%, rgba(255,255,255,0.04), transparent 40%);
+  }
+
+  .dark-hero-wrap .brand-name { color: #fff; }
+  .dark-hero-wrap .nav-links { color: var(--cream-dim); }
+  .dark-hero-wrap .nav-links a { color: var(--cream-dim); }
+  .dark-hero-wrap .nav-cta {
+    background: var(--primary);
+    color: #16302A !important;
+    padding: 9px 18px;
+    border-radius: 8px;
+    font-weight: 600;
+  }
+
+  .dark-hero-wrap .eyebrow { background: rgba(232,163,61,0.15); color: var(--primary); }
+  .dark-hero-wrap .hero h1 { color: #fff; }
+  .dark-hero-wrap .hero-sub { color: var(--cream-dim); }
+  .dark-hero-wrap .no-download-note { color: var(--cream-dim); }
+  .dark-hero-wrap .btn-secondary {
+    background: transparent;
+    color: #fff;
+    border: 1.5px solid rgba(255,255,255,0.3);
+  }
+  .dark-hero-wrap .hero-visual { box-shadow: 0 30px 80px -20px rgba(0,0,0,0.4); }
 
   .nav-inner {
     display: flex;
@@ -85,7 +115,7 @@
   .brand-mark {
     width: 32px; height: 32px;
     border-radius: 9px;
-    background: linear-gradient(135deg, var(--primary), #5B7FFF);
+    background: linear-gradient(135deg, var(--primary), #F4C06B);
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
   }
@@ -437,7 +467,7 @@
 
   /* ---------- Footer ---------- */
   footer {
-    border-top: 1px solid var(--border);
+    background: var(--brand);
     padding: 30px 0;
   }
 
@@ -446,7 +476,7 @@
     justify-content: space-between;
     align-items: center;
     font-size: 13px;
-    color: var(--slate-light);
+    color: var(--cream-dim);
   }
 
   @media (max-width: 700px) {
@@ -456,30 +486,31 @@
 </head>
 <body>
 
+<div class="dark-hero-wrap">
 <nav>
   <div class="nav-inner">
     <div class="brand">
       <div class="brand-mark">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M12 2C7.58 2 4 5.58 4 10c0 5.25 8 12 8 12s8-6.75 8-12c0-4.42-3.58-8-8-8z" fill="white"/><circle cx="12" cy="10" r="3" fill="#2454FF"/></svg>
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 2C7.58 2 4 5.58 4 10c0 5.25 8 12 8 12s8-6.75 8-12c0-4.42-3.58-8-8-8z" fill="white"/><circle cx="12" cy="10" r="3" fill="#16302A"/></svg>
       </div>
       <span class="brand-name">PinPoint</span>
     </div>
     <div class="nav-links">
       <a href="#how-it-works">How it works</a>
       <a href="#why-pinpoint">Why PinPoint</a>
-      <a href="business.html" class="nav-cta">Business Login</a>
+      <a href="business.html" class="nav-cta">Log in</a>
     </div>
   </div>
 </nav>
 
 <section class="wrap hero">
   <div>
-    <div class="eyebrow"><span class="pulse-dot"></span>Built for Nigerian small businesses</div>
-    <h1>Know exactly where your delivery is — in real time.</h1>
-    <p class="hero-sub">PinPoint gives any small business live delivery tracking, without buying an app or hiring a logistics company. Your rider, your customer, one shared view.</p>
+    <div class="eyebrow"><span class="pulse-dot"></span>Delivery tracking</div>
+    <h1>Know exactly where your delivery is — and if it's going the wrong way.</h1>
+    <p class="hero-sub">PinPoint lets your business assign a delivery to a rider and a customer by email. Both authorize it with one tap, the customer can share their live location, and the rider gets an alert the moment they drift off course.</p>
     <div class="hero-ctas">
-      <a href="business.html" class="btn-primary">Get started free</a>
-      <a href="#how-it-works" class="btn-secondary">See how it works</a>
+      <a href="business.html" class="btn-primary">Register your business</a>
+      <a href="business.html" class="btn-secondary">Log in</a>
     </div>
     <div class="no-download-note">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
@@ -495,8 +526,8 @@
 
     <svg class="route-svg" viewBox="0 0 340 160" xmlns="http://www.w3.org/2000/svg">
       <path class="route-path" d="M 30 130 C 90 130, 100 40, 170 40 S 260 100, 310 40" />
-      <circle cx="30" cy="130" r="5" fill="#0F172A"/>
-      <circle cx="310" cy="40" r="5" fill="#00C896"/>
+      <circle cx="30" cy="130" r="5" fill="#16302A"/>
+      <circle cx="310" cy="40" r="5" fill="#16A34A"/>
       <circle class="rider-glow" r="14">
         <animateMotion dur="4s" repeatCount="indefinite"
           path="M 30 130 C 90 130, 100 40, 170 40 S 260 100, 310 40" />
@@ -513,6 +544,7 @@
     </div>
   </div>
 </section>
+</div>
 
 <section class="wrap section" id="how-it-works">
   <div class="section-label">How it works</div>

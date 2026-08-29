@@ -6,27 +6,33 @@
 <title>PinPoint — Business Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root {
-    --bg: #F6F7FA;
+    --bg: #F7F8FA;
     --surface: #FFFFFF;
-    --ink: #0F172A;
+    --ink: #16302A;
     --slate: #64748B;
     --slate-light: #94A3B8;
     --border: #E7EAF0;
-    --primary: #2454FF;
-    --primary-dark: #1A3FD1;
-    --primary-tint: #EEF2FF;
-    --coral: #FF6B5B;
-    --coral-dark: #E8503F;
-    --coral-tint: #FFEEEC;
-    --live: #00C896;
-    --live-tint: #E6FBF4;
+
+    --brand: #16302A;
+    --brand-light: #1F4239;
+    --brand-lighter: #2A5647;
+    --cream: #F7F3EA;
+    --cream-dim: #B9C7BE;
+
+    --primary: #E8A33D;
+    --primary-dark: #D68A28;
+    --primary-tint: #FDF3E2;
+
+    --live: #16A34A;
+    --live-tint: #ECFDF3;
     --warn: #F59E0B;
+
     --radius: 16px;
     --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
     --shadow-md: 0 4px 16px rgba(15, 23, 42, 0.06);
@@ -40,6 +46,8 @@
     color: var(--ink);
     font-family: 'Inter', sans-serif;
     -webkit-font-smoothing: antialiased;
+    height: 100vh;
+    overflow: hidden;
   }
 
   h1, h2, h3, .display {
@@ -49,296 +57,57 @@
 
   .mono { font-family: 'JetBrains Mono', monospace; }
 
-  header {
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  .fade-in { animation: fade-in 0.4s ease; }
+
+  /* ================= AUTH VIEW ================= */
+  #auth-view {
+    height: 100vh;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 18px 40px;
-    border-bottom: 1px solid var(--border);
-    background: var(--surface);
-    position: sticky;
-    top: 0;
-    z-index: 10;
+    justify-content: center;
+    background: var(--brand);
+    padding: 20px;
   }
 
-  .brand { display: flex; align-items: center; gap: 10px; }
+  .auth-card {
+    width: 100%;
+    max-width: 400px;
+    background: var(--surface);
+    border-radius: 20px;
+    padding: 8px;
+    box-shadow: 0 30px 80px -20px rgba(0,0,0,0.4);
+  }
+
+  .auth-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 20px 20px 8px;
+  }
 
   .brand-mark {
     width: 34px; height: 34px;
     border-radius: 9px;
-    background: linear-gradient(135deg, var(--primary), #5B7FFF);
+    background: linear-gradient(135deg, var(--primary), #F4C06B);
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
-    box-shadow: 0 3px 10px rgba(36, 84, 255, 0.25);
   }
   .brand-mark svg { width: 18px; height: 18px; }
-
-  .brand-name { font-size: 18px; font-weight: 700; }
-
-  .brand-tag {
-    font-size: 12px;
-    color: var(--slate);
-    font-weight: 500;
-    padding-left: 10px;
-    margin-left: 10px;
-    border-left: 1px solid var(--border);
-  }
-
-  .header-right {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 13px;
-    font-weight: 500;
-    color: #067A5C;
-    background: var(--live-tint);
-    padding: 6px 12px;
-    border-radius: 100px;
-  }
-
-  .status-dot {
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    background: var(--live);
-    display: inline-block;
-    box-shadow: 0 0 0 3px rgba(0, 200, 150, 0.2);
-  }
-
-  .page {
-    max-width: 1280px;
-    margin: 0 auto;
-    padding: 32px 40px 60px;
-  }
-
-  @media (max-width: 900px) {
-    .page { padding: 20px; }
-  }
-
-  .track-search {
-    position: relative;
-    margin-bottom: 24px;
-  }
-
-  .track-search svg {
-    position: absolute;
-    left: 16px; top: 50%;
-    transform: translateY(-50%);
-    width: 18px; height: 18px;
-    stroke: var(--slate-light);
-  }
-
-  .track-search input {
-    width: 100%;
-    padding: 15px 16px 15px 46px;
-    border: 1.5px solid var(--border);
-    border-radius: 14px;
-    font-size: 14px;
-    background: var(--surface);
-    box-shadow: var(--shadow-sm);
-  }
-  .track-search input:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px var(--primary-tint);
-  }
-
-  .quick-actions {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 14px;
-    margin-bottom: 28px;
-  }
-
-  @media (max-width: 700px) {
-    .quick-actions { grid-template-columns: repeat(2, 1fr); }
-  }
-
-  .quick-action-btn {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 18px 10px;
-    cursor: pointer;
-    box-shadow: var(--shadow-sm);
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--ink);
-  }
-  .quick-action-btn:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
-
-  .quick-action-icon {
-    width: 42px; height: 42px;
-    border-radius: 12px;
-    display: flex; align-items: center; justify-content: center;
-  }
-  .quick-action-icon svg { width: 20px; height: 20px; }
-  .quick-action-icon.coral { background: var(--coral-tint); }
-  .quick-action-icon.coral svg { stroke: var(--coral-dark); }
-  .quick-action-icon.blue { background: var(--primary-tint); }
-  .quick-action-icon.blue svg { stroke: var(--primary); }
-  .quick-action-icon.green { background: var(--live-tint); }
-  .quick-action-icon.green svg { stroke: #067A5C; }
-  .quick-action-icon.slate { background: #F1F5F9; }
-  .quick-action-icon.slate svg { stroke: var(--slate); }
-
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
-    margin-bottom: 32px;
-  }
-
-  @media (max-width: 800px) {
-    .stats-grid { grid-template-columns: repeat(2, 1fr); }
-  }
-
-  .analytics-toggle-btn {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--primary);
-    background: var(--primary-tint);
-    border: none;
-    padding: 9px 16px;
-    border-radius: 100px;
-    cursor: pointer;
-    margin-bottom: 20px;
-  }
-  .analytics-toggle-btn svg { width: 14px; height: 14px; }
-
-  .analytics-panel {
-    margin-bottom: 32px;
-    animation: fade-in 0.35s ease;
-  }
-
-  .analytics-cards {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 14px;
-    margin-bottom: 20px;
-  }
-
-  @media (max-width: 800px) {
-    .analytics-cards { grid-template-columns: repeat(2, 1fr); }
-  }
-
-  .mini-analytics-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 16px 18px;
-    box-shadow: var(--shadow-sm);
-  }
-
-  .mini-analytics-value {
-    font-size: 22px;
-    font-weight: 700;
-    font-family: 'Space Grotesk', sans-serif;
-    margin-bottom: 3px;
-  }
-  .mini-analytics-value.red { color: #B91C1C; }
-  .mini-analytics-value.amber { color: #B7791F; }
-  .mini-analytics-label { font-size: 12px; color: var(--slate); }
-
-  .chart-row {
-    display: grid;
-    grid-template-columns: 1.4fr 1fr;
-    gap: 16px;
-  }
-
-  @media (max-width: 800px) {
-    .chart-row { grid-template-columns: 1fr; }
-  }
-
-  .chart-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 20px;
-    box-shadow: var(--shadow-sm);
-  }
-
-  .chart-title {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--slate);
-    margin-bottom: 14px;
-  }
-
-  .stat-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 20px 22px;
-    box-shadow: var(--shadow-sm);
-  }
-
-  .stat-icon {
-    width: 34px; height: 34px;
-    border-radius: 9px;
-    display: flex; align-items: center; justify-content: center;
-    margin-bottom: 14px;
-  }
-  .stat-icon svg { width: 17px; height: 17px; }
-  .stat-icon.blue { background: var(--primary-tint); }
-  .stat-icon.blue svg { stroke: var(--primary); }
-  .stat-icon.amber { background: #FFF7E6; }
-  .stat-icon.amber svg { stroke: #B7791F; }
-  .stat-icon.green { background: var(--live-tint); }
-  .stat-icon.green svg { stroke: #067A5C; }
-  .stat-icon.slate { background: #F1F5F9; }
-  .stat-icon.slate svg { stroke: var(--slate); }
-
-  .stat-value {
-    font-size: 26px;
-    font-weight: 700;
-    font-family: 'Space Grotesk', sans-serif;
-    margin-bottom: 2px;
-  }
-
-  .stat-label { font-size: 13px; color: var(--slate); }
-
-  .layout {
-    display: grid;
-    grid-template-columns: 420px 1fr;
-    gap: 28px;
-    align-items: start;
-  }
-
-  @media (max-width: 900px) {
-    .layout { grid-template-columns: 1fr; }
-  }
-
-  .panel-title {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--slate);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    margin-bottom: 14px;
-  }
-
-  .tab-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow-md);
-    overflow: hidden;
-    margin-bottom: 28px;
-  }
+  .auth-brand-name { font-size: 17px; font-weight: 700; color: var(--brand); }
 
   .tab-switch {
     display: flex;
     background: #F4F5F8;
     padding: 5px;
-    margin: 16px;
+    margin: 12px 16px;
     border-radius: 11px;
   }
 
@@ -355,31 +124,14 @@
     cursor: pointer;
     transition: all 0.15s ease;
   }
-
-  .tab-btn.active {
-    background: var(--surface);
-    color: var(--ink);
-    box-shadow: var(--shadow-sm);
-  }
+  .tab-btn.active { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-sm); }
 
   .tab-panel { display: none; padding: 4px 24px 24px; }
-  .tab-panel.active { display: block; }
+  .tab-panel.active { display: block; animation: fade-in 0.25s ease; }
 
   .field { margin-bottom: 16px; }
-
-  .field label {
-    display: block;
-    font-size: 13px;
-    font-weight: 600;
-    margin-bottom: 6px;
-    color: var(--ink);
-  }
-
-  .field-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-  }
+  .field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
   input, select, textarea {
     width: 100%;
@@ -392,14 +144,12 @@
     color: var(--ink);
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
   }
-
   input:focus, select:focus, textarea:focus {
     outline: none;
     border-color: var(--primary);
     box-shadow: 0 0 0 3px var(--primary-tint);
     background: #fff;
   }
-
   textarea { resize: vertical; min-height: 60px; }
 
   .submit-btn {
@@ -411,330 +161,312 @@
     border-radius: 9px;
     font-size: 14px;
     font-weight: 600;
-    font-family: 'Inter', sans-serif;
     cursor: pointer;
     margin-top: 4px;
     transition: background 0.15s ease, transform 0.1s ease;
-    box-shadow: 0 2px 8px rgba(36, 84, 255, 0.25);
+    box-shadow: 0 2px 8px rgba(232, 163, 61, 0.35);
   }
-
   .submit-btn:hover { background: var(--primary-dark); }
   .submit-btn:active { transform: scale(0.99); }
   .submit-btn:disabled { background: var(--slate-light); cursor: not-allowed; box-shadow: none; }
 
-  .form-msg {
-    font-size: 13px;
-    margin-top: 12px;
-    padding: 10px 12px;
-    border-radius: 8px;
-    display: none;
-  }
-  .form-msg.success { display: block; background: var(--live-tint); color: #067A5C; }
+  .form-msg { font-size: 13px; margin-top: 12px; padding: 10px 12px; border-radius: 8px; display: none; }
+  .form-msg.success { display: block; background: var(--live-tint); color: #067A3E; }
   .form-msg.error { display: block; background: #FEF2F2; color: #B91C1C; }
 
-  .whatsapp-btn {
+  /* ================= DASHBOARD SHELL ================= */
+  .dashboard-shell {
+    display: flex;
+    height: 100vh;
+  }
+
+  /* ---- Sidebar ---- */
+  .sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    background: var(--brand);
+    color: var(--cream);
+    display: flex;
+    flex-direction: column;
+    padding: 22px 16px;
+  }
+
+  .sidebar-brand {
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 8px;
-    width: 100%;
-    padding: 12px;
-    background: #25D366;
-    color: #fff;
-    border-radius: 9px;
-    font-size: 14px;
+    gap: 10px;
+    padding: 0 8px;
+    margin-bottom: 28px;
+  }
+  .sidebar-brand-name { font-size: 17px; font-weight: 700; color: #fff; }
+
+  .sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 12px;
+    border-radius: 10px;
+    font-size: 13px;
     font-weight: 600;
-    margin-top: 10px;
-    text-decoration: none;
-    transition: background 0.15s ease;
-    box-shadow: 0 2px 8px rgba(37, 211, 102, 0.25);
+    color: var(--cream-dim);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+  }
+  .nav-item svg { width: 17px; height: 17px; flex-shrink: 0; }
+  .nav-item:hover { background: var(--brand-light); color: #fff; }
+  .nav-item.active { background: var(--primary); color: #fff; }
+
+  .sidebar-footer {
+    border-top: 1px solid var(--brand-light);
+    padding-top: 14px;
+    margin-top: 14px;
+  }
+
+  .sidebar-business-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .sidebar-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--cream-dim);
+    margin-bottom: 12px;
+  }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--live); }
+
+  .logout-link {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--cream-dim);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+  }
+  .logout-link:hover { color: #fff; }
+
+  /* Mobile: collapse sidebar into a top bar */
+  .mobile-topbar { display: none; }
+
+  @media (max-width: 900px) {
+    .dashboard-shell { flex-direction: column; }
+    .sidebar {
+      width: 100%;
+      flex-direction: row;
+      align-items: center;
+      padding: 12px 16px;
+      overflow-x: auto;
+    }
+    .sidebar-brand, .sidebar-footer { display: none; }
+    .sidebar-nav { flex-direction: row; flex: none; }
+    .nav-item { white-space: nowrap; }
+  }
+
+  /* ---- Main content ---- */
+  .main-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 32px 40px 60px;
+  }
+
+  @media (max-width: 700px) {
+    .main-content { padding: 20px; }
+  }
+
+  .content-section { display: none; animation: fade-in 0.3s ease; }
+  .content-section.active { display: block; }
+
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 26px;
+  }
+  .section-header h2 { font-size: 24px; }
+  .section-header p { font-size: 13px; color: var(--slate); margin-top: 4px; }
+
+  /* ---- Stats ---- */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  @media (max-width: 800px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 22px;
+    box-shadow: var(--shadow-sm);
+  }
+  .stat-icon { width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center; margin-bottom: 14px; }
+  .stat-icon svg { width: 17px; height: 17px; }
+  .stat-icon.orange { background: var(--primary-tint); } .stat-icon.orange svg { stroke: var(--primary-dark); }
+  .stat-icon.green { background: var(--live-tint); } .stat-icon.green svg { stroke: var(--live); }
+  .stat-icon.brand { background: #EAF0EE; } .stat-icon.brand svg { stroke: var(--brand); }
+  .stat-icon.slate { background: #F1F5F9; } .stat-icon.slate svg { stroke: var(--slate); }
+  .stat-value { font-size: 26px; font-weight: 700; font-family: 'Space Grotesk', sans-serif; margin-bottom: 2px; }
+  .stat-label { font-size: 13px; color: var(--slate); }
+
+  /* ---- Quick actions ---- */
+  .quick-actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 28px; }
+  @media (max-width: 700px) { .quick-actions { grid-template-columns: repeat(2, 1fr); } }
+
+  .quick-action-btn {
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    padding: 18px 10px; cursor: pointer; box-shadow: var(--shadow-sm);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    font-size: 12px; font-weight: 600; color: var(--ink); text-decoration: none;
+  }
+  .quick-action-btn:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+  .quick-action-icon { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+  .quick-action-icon svg { width: 20px; height: 20px; }
+  .quick-action-icon.orange { background: var(--primary-tint); } .quick-action-icon.orange svg { stroke: var(--primary-dark); }
+  .quick-action-icon.brand { background: #EAF0EE; } .quick-action-icon.brand svg { stroke: var(--brand); }
+  .quick-action-icon.green { background: var(--live-tint); } .quick-action-icon.green svg { stroke: var(--live); }
+  .quick-action-icon.slate { background: #F1F5F9; } .quick-action-icon.slate svg { stroke: var(--slate); }
+
+  .panel-title { font-size: 13px; font-weight: 600; color: var(--slate); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 14px; }
+
+  /* ---- Track search ---- */
+  .track-search { position: relative; margin-bottom: 20px; }
+  .track-search svg { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; stroke: var(--slate-light); }
+  .track-search input { padding: 15px 16px 15px 46px; border-radius: 14px; box-shadow: var(--shadow-sm); }
+
+  /* ---- Forms card ---- */
+  .form-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-md); padding: 28px; max-width: 640px; }
+
+  .whatsapp-btn {
+    display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
+    padding: 12px; background: #25D366; color: #fff; border-radius: 9px; font-size: 14px;
+    font-weight: 600; margin-top: 10px; text-decoration: none; box-shadow: 0 2px 8px rgba(37, 211, 102, 0.25);
   }
   .whatsapp-btn:hover { background: #1EBE59; }
   .whatsapp-btn svg { width: 17px; height: 17px; fill: #fff; flex-shrink: 0; }
 
-  .riders-panel {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow-md);
-    padding: 20px;
-  }
-
-  .rider-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 4px;
-    border-bottom: 1px solid var(--border);
-  }
-  .rider-row:last-child { border-bottom: none; }
-
-  .rider-avatar {
-    width: 36px; height: 36px;
-    border-radius: 50%;
-    background: var(--primary-tint);
-    color: var(--primary);
-    display: flex; align-items: center; justify-content: center;
-    font-weight: 700;
-    font-size: 14px;
-    flex-shrink: 0;
-  }
-
-  .rider-info { flex: 1; min-width: 0; }
-  .rider-info-name { font-size: 13px; font-weight: 600; }
-  .rider-info-meta { font-size: 12px; color: var(--slate-light); }
-
-  .rider-status-pill {
-    font-size: 10px;
-    font-weight: 600;
-    padding: 3px 8px;
-    border-radius: 100px;
-    text-transform: uppercase;
-    background: #F1F5F9;
-    color: var(--slate);
-    flex-shrink: 0;
-  }
-
-  .deliveries-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    margin-bottom: 14px;
-  }
-
-  .delivery-count { font-size: 13px; color: var(--slate-light); }
-
-  .empty-state {
-    border: 1.5px dashed var(--border);
-    border-radius: var(--radius);
-    padding: 60px 24px;
-    text-align: center;
-    color: var(--slate);
-    background: var(--surface);
-  }
-  .empty-state svg { width: 40px; height: 40px; margin-bottom: 14px; opacity: 0.4; }
-  .empty-state p { font-size: 14px; }
-
-  .stub-grid { display: flex; flex-direction: column; gap: 14px; }
-
-  .stub {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    overflow: hidden;
-    box-shadow: var(--shadow-sm);
-    transition: box-shadow 0.2s ease, transform 0.2s ease;
-    animation: rise 0.35s ease;
-  }
-
-  .stub:hover {
-    box-shadow: var(--shadow-lg);
-    transform: translateY(-2px);
-  }
-
-  @keyframes rise {
-    from { opacity: 0; transform: translateY(6px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  @keyframes fade-in {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-  .fade-in { animation: fade-in 0.4s ease; }
-
-  .stub-main { padding: 20px 22px; }
-
-  .stub-top {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 10px;
-  }
-
-  .stub-code { font-size: 13px; font-weight: 500; color: var(--slate); letter-spacing: 0.02em; }
-
-  .tag {
-    font-size: 11px;
-    font-weight: 600;
-    padding: 3px 9px;
-    border-radius: 100px;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-  }
-  .tag.created { background: var(--primary-tint); color: var(--primary); }
-  .tag.assigned { background: #FFF7E6; color: #B7791F; }
-  .tag.in_transit { background: var(--live-tint); color: #067A5C; }
-  .tag.delivered { background: #F1F5F9; color: var(--slate); }
-  .tag.failed { background: #FEF2F2; color: #B91C1C; }
-
-  .stub-customer { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
-
-  .stub-route {
-    font-size: 13px;
-    color: var(--slate);
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-wrap: wrap;
-  }
-  .stub-route .arrow { color: var(--slate-light); }
-
-  .stub-side {
-    border-left: 1.5px dashed var(--border);
-    background: var(--primary-tint);
-    padding: 20px 18px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    min-width: 130px;
-    position: relative;
-  }
-
-  .stub-side::before, .stub-side::after {
-    content: '';
-    position: absolute;
-    width: 16px; height: 16px;
-    background: var(--bg);
-    border-radius: 50%;
-    left: -8px;
-  }
-  .stub-side::before { top: -8px; }
-  .stub-side::after { bottom: -8px; }
-
-  .stub-rider-label {
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--primary);
-    font-weight: 600;
-    margin-bottom: 4px;
-  }
-  .stub-rider-name { font-size: 13px; font-weight: 600; text-align: center; }
-
-  /* ---------- Location pickers ---------- */
-  .picker-hint {
-    font-size: 12px;
-    color: var(--slate-light);
-    margin: -10px 0 10px;
-  }
-
+  /* ---- Location pickers ---- */
+  .picker-hint { font-size: 12px; color: var(--slate-light); margin: -10px 0 10px; }
   .address-search-wrap { position: relative; }
-
   .address-suggestions {
-    position: absolute;
-    top: calc(100% + 2px);
-    left: 0; right: 0;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    box-shadow: var(--shadow-lg);
-    z-index: 30;
-    max-height: 180px;
-    overflow-y: auto;
-    display: none;
+    position: absolute; top: calc(100% + 2px); left: 0; right: 0; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow-lg);
+    z-index: 30; max-height: 180px; overflow-y: auto; display: none;
   }
   .address-suggestions.visible { display: block; }
-
-  .address-suggestion-item {
-    padding: 10px 14px;
-    font-size: 13px;
-    cursor: pointer;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
+  .address-suggestion-item { padding: 10px 14px; font-size: 13px; cursor: pointer; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
   .address-suggestion-item:last-child { border-bottom: none; }
   .address-suggestion-item:hover { background: var(--primary-tint); }
   .address-suggestion-item svg { width: 13px; height: 13px; stroke: var(--slate-light); flex-shrink: 0; }
 
-  .mini-map {
-    width: 100%;
-    height: 160px;
-    border-radius: 10px;
-    border: 1.5px solid var(--border);
-    margin-bottom: 16px;
-    background: #E5E9F0;
-  }
-
-  .pin-marker {
-    width: 26px; height: 26px;
-    border-radius: 50% 50% 50% 0;
-    transform: rotate(-45deg);
-    display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-  }
-  .pin-marker.pickup { background: var(--ink); }
+  .mini-map { width: 100%; height: 180px; border-radius: 10px; border: 1.5px solid var(--border); margin-bottom: 16px; background: #E5E9F0; }
+  .pin-marker { width: 26px; height: 26px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
+  .pin-marker.pickup { background: var(--brand); }
   .pin-marker.destination { background: var(--live); }
   .pin-marker svg { transform: rotate(45deg); width: 12px; height: 12px; }
 
-  .distance-preview {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: var(--primary-tint);
-    color: var(--primary);
-    font-size: 13px;
-    font-weight: 600;
-    padding: 10px 14px;
-    border-radius: 9px;
-    margin-bottom: 16px;
-  }
+  .distance-preview { display: flex; align-items: center; justify-content: space-between; background: var(--primary-tint); color: var(--primary-dark); font-size: 13px; font-weight: 600; padding: 10px 14px; border-radius: 9px; margin-bottom: 16px; }
 
-  .rider-photo-upload {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 16px;
-  }
-
-  .photo-preview {
-    width: 52px; height: 52px;
-    border-radius: 50%;
-    background: var(--primary-tint);
-    display: flex; align-items: center; justify-content: center;
-    overflow: hidden;
-    flex-shrink: 0;
-    border: 1.5px solid var(--border);
-  }
+  .rider-photo-upload { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .photo-preview { width: 52px; height: 52px; border-radius: 50%; background: var(--primary-tint); display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; border: 1.5px solid var(--border); }
   .photo-preview img { width: 100%; height: 100%; object-fit: cover; }
   .photo-preview svg { width: 22px; height: 22px; stroke: var(--slate-light); }
+  .photo-upload-btn { font-size: 13px; font-weight: 600; color: var(--primary-dark); background: var(--primary-tint); padding: 9px 14px; border-radius: 8px; cursor: pointer; border: none; }
 
-  .photo-upload-btn {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--primary);
-    background: var(--primary-tint);
-    padding: 9px 14px;
-    border-radius: 8px;
-    cursor: pointer;
-    border: none;
+  /* ---- Riders list ---- */
+  .riders-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-md); padding: 20px; max-width: 640px; margin-top: 24px; }
+  .rider-row { display: flex; align-items: center; gap: 12px; padding: 10px 4px; border-bottom: 1px solid var(--border); }
+  .rider-row:last-child { border-bottom: none; }
+  .rider-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--primary-tint); color: var(--primary-dark); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; flex-shrink: 0; }
+  .rider-info { flex: 1; min-width: 0; }
+  .rider-info-name { font-size: 13px; font-weight: 600; }
+  .rider-info-meta { font-size: 12px; color: var(--slate-light); }
+  .rider-status-pill { font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 100px; text-transform: uppercase; background: #F1F5F9; color: var(--slate); flex-shrink: 0; }
+
+  /* ---- Deliveries list ---- */
+  .deliveries-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 14px; }
+  .delivery-count { font-size: 13px; color: var(--slate-light); }
+  .empty-state { border: 1.5px dashed var(--border); border-radius: var(--radius); padding: 60px 24px; text-align: center; color: var(--slate); background: var(--surface); }
+  .empty-state svg { width: 40px; height: 40px; margin-bottom: 14px; opacity: 0.4; }
+  .empty-state p { font-size: 14px; }
+
+  .stub-grid { display: flex; flex-direction: column; gap: 14px; }
+  .stub {
+    display: grid; grid-template-columns: 1fr auto; background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.2s ease, transform 0.2s ease; animation: rise 0.35s ease;
   }
+  .stub:hover { box-shadow: var(--shadow-lg); transform: translateY(-2px); }
+  .stub-main { padding: 20px 22px; }
+  .stub-top { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .stub-code { font-size: 13px; font-weight: 500; color: var(--slate); letter-spacing: 0.02em; }
+
+  .tag { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 100px; text-transform: uppercase; letter-spacing: 0.03em; }
+  .tag.created { background: var(--primary-tint); color: var(--primary-dark); }
+  .tag.assigned { background: #FFF7E6; color: #B7791F; }
+  .tag.in_transit { background: var(--live-tint); color: #067A3E; }
+  .tag.delivered { background: #F1F5F9; color: var(--slate); }
+  .tag.failed { background: #FEF2F2; color: #B91C1C; }
+
+  .stub-customer { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+  .stub-route { font-size: 13px; color: var(--slate); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .stub-route .arrow { color: var(--slate-light); }
+  .stub-side {
+    border-left: 1.5px dashed var(--border); background: var(--primary-tint); padding: 20px 18px;
+    display: flex; flex-direction: column; justify-content: center; align-items: center; min-width: 130px; position: relative;
+  }
+  .stub-side::before, .stub-side::after { content: ''; position: absolute; width: 16px; height: 16px; background: var(--bg); border-radius: 50%; left: -8px; }
+  .stub-side::before { top: -8px; } .stub-side::after { bottom: -8px; }
+  .stub-rider-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--primary-dark); font-weight: 600; margin-bottom: 4px; }
+  .stub-rider-name { font-size: 13px; font-weight: 600; text-align: center; }
+
+  /* ---- Analytics ---- */
+  .analytics-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+  @media (max-width: 800px) { .analytics-cards { grid-template-columns: repeat(2, 1fr); } }
+  .mini-analytics-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; box-shadow: var(--shadow-sm); }
+  .mini-analytics-value { font-size: 22px; font-weight: 700; font-family: 'Space Grotesk', sans-serif; margin-bottom: 3px; }
+  .mini-analytics-value.red { color: #B91C1C; }
+  .mini-analytics-value.amber { color: #B7791F; }
+  .mini-analytics-label { font-size: 12px; color: var(--slate); }
+  .chart-row { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; }
+  @media (max-width: 800px) { .chart-row { grid-template-columns: 1fr; } }
+  .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow-sm); }
+  .chart-title { font-size: 13px; font-weight: 600; color: var(--slate); margin-bottom: 14px; }
 </style>
 </head>
 <body>
 
-<header>
-  <div class="brand">
-    <div class="brand-mark">
-      <svg viewBox="0 0 24 24" fill="none"><path d="M12 2C7.58 2 4 5.58 4 10c0 5.25 8 12 8 12s8-6.75 8-12c0-4.42-3.58-8-8-8z" fill="white"/><circle cx="12" cy="10" r="3" fill="#2454FF"/></svg>
+<!-- ================= AUTH VIEW ================= -->
+<div id="auth-view">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 2C7.58 2 4 5.58 4 10c0 5.25 8 12 8 12s8-6.75 8-12c0-4.42-3.58-8-8-8z" fill="white"/><circle cx="12" cy="10" r="3" fill="#16302A"/></svg>
+      </div>
+      <span class="auth-brand-name">PinPoint</span>
     </div>
-    <span class="brand-name">PinPoint</span>
-    <span class="brand-tag">Business Dashboard</span>
-  </div>
-  <div class="header-right" id="header-status" style="display:none;">
-    <span class="status-dot"></span><span id="business-name-label">Connected</span>
-  </div>
-  <button id="logout-btn" style="display:none; background:none; border:1px solid var(--border); padding:7px 14px; border-radius:8px; font-size:13px; font-weight:600; color:var(--slate); cursor:pointer; margin-left:10px;">Log out</button>
-</header>
 
-<!-- Auth gate -->
-<div id="auth-view" style="max-width:400px; margin: 70px auto; padding: 0 20px;">
-  <div class="tab-card" style="margin-bottom:0;">
     <div class="tab-switch">
       <button class="tab-btn active" data-authtab="login-panel">Log In</button>
       <button class="tab-btn" data-authtab="signup-panel">Sign Up</button>
@@ -742,14 +474,8 @@
 
     <div class="tab-panel active" id="login-panel">
       <form id="login-form">
-        <div class="field">
-          <label for="login-email">Email</label>
-          <input type="email" id="login-email" required placeholder="you@business.com">
-        </div>
-        <div class="field">
-          <label for="login-password">Password</label>
-          <input type="password" id="login-password" required placeholder="••••••••">
-        </div>
+        <div class="field"><label for="login-email">Email</label><input type="email" id="login-email" required placeholder="you@business.com"></div>
+        <div class="field"><label for="login-password">Password</label><input type="password" id="login-password" required placeholder="••••••••"></div>
         <button type="submit" class="submit-btn" id="login-btn">Log in</button>
         <div class="form-msg" id="login-msg"></div>
       </form>
@@ -757,18 +483,9 @@
 
     <div class="tab-panel" id="signup-panel">
       <form id="signup-form">
-        <div class="field">
-          <label for="signup-business-name">Business name</label>
-          <input type="text" id="signup-business-name" required placeholder="e.g. Chioma's Kitchen">
-        </div>
-        <div class="field">
-          <label for="signup-email">Email</label>
-          <input type="email" id="signup-email" required placeholder="you@business.com">
-        </div>
-        <div class="field">
-          <label for="signup-password">Password</label>
-          <input type="password" id="signup-password" required placeholder="At least 6 characters" minlength="6">
-        </div>
+        <div class="field"><label for="signup-business-name">Business name</label><input type="text" id="signup-business-name" required placeholder="e.g. Chioma's Kitchen"></div>
+        <div class="field"><label for="signup-email">Email</label><input type="email" id="signup-email" required placeholder="you@business.com"></div>
+        <div class="field"><label for="signup-password">Password</label><input type="password" id="signup-password" required placeholder="At least 6 characters" minlength="6"></div>
         <button type="submit" class="submit-btn" id="signup-btn">Create account</button>
         <div class="form-msg" id="signup-msg"></div>
       </form>
@@ -776,198 +493,156 @@
   </div>
 </div>
 
-<div class="page" id="dashboard-view" style="display:none;">
+<!-- ================= DASHBOARD SHELL ================= -->
+<div class="dashboard-shell" id="dashboard-view" style="display:none;">
 
-  <div class="track-search">
-    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-    <input type="text" id="track-search-input" placeholder="Track a delivery by code, customer, or rider...">
-  </div>
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 2C7.58 2 4 5.58 4 10c0 5.25 8 12 8 12s8-6.75 8-12c0-4.42-3.58-8-8-8z" fill="white"/><circle cx="12" cy="10" r="3" fill="#16302A"/></svg>
+      </div>
+      <span class="sidebar-brand-name">PinPoint</span>
+    </div>
 
-  <div class="quick-actions">
-    <button class="quick-action-btn" id="qa-new-delivery">
-      <div class="quick-action-icon coral"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div>
-      New Delivery
-    </button>
-    <button class="quick-action-btn" id="qa-add-rider">
-      <div class="quick-action-icon blue"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg></div>
-      Add Rider
-    </button>
-    <button class="quick-action-btn" id="qa-analytics">
-      <div class="quick-action-icon green"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg></div>
-      Analytics
-    </button>
-    <a href="https://wa.me/2348000000000" target="_blank" class="quick-action-btn">
-      <div class="quick-action-icon slate"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg></div>
-      Support
-    </a>
-  </div>
+    <nav class="sidebar-nav">
+      <button class="nav-item active" data-section="section-overview">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        Overview
+      </button>
+      <button class="nav-item" data-section="section-create">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+        Create Delivery
+      </button>
+      <button class="nav-item" data-section="section-deliveries">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"/></svg>
+        Deliveries
+      </button>
+      <button class="nav-item" data-section="section-riders">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
+        Riders
+      </button>
+      <button class="nav-item" data-section="section-analytics">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+        Analytics
+      </button>
+    </nav>
 
-  <div class="stats-grid">
-    <div class="stat-card">
-      <div class="stat-icon blue"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"/></svg></div>
-      <div class="stat-value" id="stat-total">0</div>
-      <div class="stat-label">Total deliveries</div>
+    <div class="sidebar-footer">
+      <div class="sidebar-status"><span class="status-dot"></span>Connected</div>
+      <div class="sidebar-business-name" id="business-name-label">Business</div>
+      <button class="logout-link" id="logout-btn">Log out</button>
     </div>
-    <div class="stat-card">
-      <div class="stat-icon amber"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M12 8v4l3 3M12 2a10 10 0 100 20 10 10 0 000-20z"/></svg></div>
-      <div class="stat-value" id="stat-active">0</div>
-      <div class="stat-label">Active now</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon green"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M9 12l2 2 4-4M12 2a10 10 0 100 20 10 10 0 000-20z"/></svg></div>
-      <div class="stat-value" id="stat-delivered">0</div>
-      <div class="stat-label">Delivered</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon slate"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg></div>
-      <div class="stat-value" id="stat-riders">0</div>
-      <div class="stat-label">Riders</div>
-    </div>
-  </div>
+  </aside>
 
-  <button class="analytics-toggle-btn" id="analytics-toggle-btn">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
-    View Analytics
-  </button>
+  <main class="main-content">
 
-  <div class="analytics-panel" id="analytics-panel" style="display:none;">
-    <div class="analytics-cards">
-      <div class="mini-analytics-card">
-        <div class="mini-analytics-value amber" id="an-success-rate">—</div>
-        <div class="mini-analytics-label">Success rate</div>
-      </div>
-      <div class="mini-analytics-card">
-        <div class="mini-analytics-value red" id="an-failed">0</div>
-        <div class="mini-analytics-label">Failed deliveries</div>
-      </div>
-      <div class="mini-analytics-card">
-        <div class="mini-analytics-value" id="an-avg-time">—</div>
-        <div class="mini-analytics-label">Avg delivery time</div>
-      </div>
-      <div class="mini-analytics-card">
-        <div class="mini-analytics-value" id="an-avg-rating">—</div>
-        <div class="mini-analytics-label">Avg customer rating</div>
-      </div>
-    </div>
-    <div class="chart-row">
-      <div class="chart-card">
-        <div class="chart-title">Deliveries — last 7 days</div>
-        <canvas id="volume-chart" height="160"></canvas>
-      </div>
-      <div class="chart-card">
-        <div class="chart-title">Success vs Failed</div>
-        <canvas id="outcome-chart" height="160"></canvas>
-      </div>
-    </div>
-  </div>
+    <!-- ---------- OVERVIEW ---------- -->
+    <div class="content-section active" id="section-overview">
+      <div class="section-header"><div><h2>Overview</h2><p>A quick look at how things are moving today.</p></div></div>
 
-  <div class="layout">
-    <div>
-      <div class="tab-card">
-        <div class="tab-switch">
-          <button class="tab-btn active" data-tab="delivery-tab">Create Delivery</button>
-          <button class="tab-btn" data-tab="rider-tab">Add Rider</button>
+      <div class="quick-actions">
+        <button class="quick-action-btn" id="qa-new-delivery">
+          <div class="quick-action-icon orange"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div>
+          New Delivery
+        </button>
+        <button class="quick-action-btn" id="qa-add-rider">
+          <div class="quick-action-icon brand"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg></div>
+          Add Rider
+        </button>
+        <button class="quick-action-btn" id="qa-analytics">
+          <div class="quick-action-icon green"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg></div>
+          Analytics
+        </button>
+        <a href="https://wa.me/2348000000000" target="_blank" class="quick-action-btn">
+          <div class="quick-action-icon slate"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg></div>
+          Support
+        </a>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon orange"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"/></svg></div>
+          <div class="stat-value" id="stat-total">0</div>
+          <div class="stat-label">Total deliveries</div>
         </div>
-
-        <div class="tab-panel active" id="delivery-tab">
-          <form id="delivery-form">
-            <div class="field">
-              <label for="customer_name">Customer name</label>
-              <input type="text" id="customer_name" required placeholder="e.g. Chioma Okafor">
-            </div>
-            <div class="field">
-              <label for="customer_phone">Customer phone</label>
-              <input type="tel" id="customer_phone" required placeholder="080X XXX XXXX">
-            </div>
-            <div class="field">
-              <label for="package_description">Package description</label>
-              <textarea id="package_description" placeholder="What's being delivered?"></textarea>
-            </div>
-            <div class="field">
-              <label for="pickup_address">Pickup address</label>
-              <div class="address-search-wrap">
-                <input type="text" id="pickup_address" required placeholder="Search a saved address, or type + pin below" autocomplete="off">
-                <div class="address-suggestions" id="pickup-suggestions"></div>
-              </div>
-              <div class="picker-hint">Not listed? Tap the map to drop an exact pin — we'll save it for next time</div>
-              <div class="mini-map" id="pickup-map"></div>
-              <input type="text" id="pickup_landmark" placeholder="Landmark (e.g. beside the blue kiosk)" style="margin-top:-6px;">
-            </div>
-            <div class="field">
-              <label for="destination_address">Destination address</label>
-              <div class="address-search-wrap">
-                <input type="text" id="destination_address" required placeholder="Search a saved address, or type + pin below" autocomplete="off">
-                <div class="address-suggestions" id="destination-suggestions"></div>
-              </div>
-              <div class="picker-hint">Not listed? Tap the map to drop an exact pin — we'll save it for next time</div>
-              <div class="mini-map" id="destination-map"></div>
-              <input type="text" id="destination_landmark" placeholder="Landmark (e.g. opposite NNPC station)" style="margin-top:-6px;">
-            </div>
-            <div class="distance-preview" id="distance-preview" style="display:none;">
-              <span>Straight-line distance</span>
-              <span id="distance-preview-value">—</span>
-            </div>
-            <div class="field">
-              <label for="rider_id">Assign rider</label>
-              <select id="rider_id" required>
-                <option value="">Loading riders…</option>
-              </select>
-            </div>
-            <button type="submit" class="submit-btn" id="submit-btn">Create delivery</button>
-            <div class="form-msg" id="form-msg"></div>
-            <div id="delivery-whatsapp-container"></div>
-          </form>
+        <div class="stat-card">
+          <div class="stat-icon brand"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M12 8v4l3 3M12 2a10 10 0 100 20 10 10 0 000-20z"/></svg></div>
+          <div class="stat-value" id="stat-active">0</div>
+          <div class="stat-label">Active now</div>
         </div>
-
-        <div class="tab-panel" id="rider-tab">
-          <form id="rider-form">
-            <div class="rider-photo-upload">
-              <div class="photo-preview" id="rider-photo-preview">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
-              </div>
-              <label class="photo-upload-btn">
-                Upload photo
-                <input type="file" id="rider_photo" accept="image/*" style="display:none;">
-              </label>
-            </div>
-            <div class="field">
-              <label for="rider_name">Rider name</label>
-              <input type="text" id="rider_name" required placeholder="e.g. Ifeanyi Obi">
-            </div>
-            <div class="field">
-              <label for="rider_email">Rider email</label>
-              <input type="email" id="rider_email" required placeholder="rider@email.com">
-            </div>
-            <div class="field-row">
-              <div class="field">
-                <label for="rider_phone">Phone</label>
-                <input type="tel" id="rider_phone" placeholder="080X XXX XXXX">
-              </div>
-              <div class="field">
-                <label for="rider_vehicle">Vehicle</label>
-                <select id="rider_vehicle">
-                  <option value="bike">Bike</option>
-                  <option value="car">Car</option>
-                  <option value="foot">On foot</option>
-                </select>
-              </div>
-            </div>
-            <button type="submit" class="submit-btn" id="rider-submit-btn">Add rider &amp; send invite</button>
-            <div class="form-msg" id="rider-form-msg"></div>
-            <div id="rider-whatsapp-container"></div>
-          </form>
+        <div class="stat-card">
+          <div class="stat-icon green"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M9 12l2 2 4-4M12 2a10 10 0 100 20 10 10 0 000-20z"/></svg></div>
+          <div class="stat-value" id="stat-delivered">0</div>
+          <div class="stat-label">Delivered</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon slate"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg></div>
+          <div class="stat-value" id="stat-riders">0</div>
+          <div class="stat-label">Riders</div>
         </div>
       </div>
+    </div>
 
-      <div class="panel-title">Your Riders</div>
-      <div class="riders-panel" id="riders-panel">
-        <div style="font-size:13px; color:var(--slate-light);">Loading riders…</div>
+    <!-- ---------- CREATE DELIVERY ---------- -->
+    <div class="content-section" id="section-create">
+      <div class="section-header"><div><h2>Create Delivery</h2><p>Assign a new delivery to one of your riders.</p></div></div>
+
+      <div class="form-card">
+        <form id="delivery-form">
+          <div class="field"><label for="customer_name">Customer name</label><input type="text" id="customer_name" required placeholder="e.g. Chioma Okafor"></div>
+          <div class="field"><label for="customer_phone">Customer phone</label><input type="tel" id="customer_phone" required placeholder="080X XXX XXXX"></div>
+          <div class="field"><label for="package_description">Package description</label><textarea id="package_description" placeholder="What's being delivered?"></textarea></div>
+
+          <div class="field">
+            <label for="pickup_address">Pickup address</label>
+            <div class="address-search-wrap">
+              <input type="text" id="pickup_address" required placeholder="Search a saved address, or type + pin below" autocomplete="off">
+              <div class="address-suggestions" id="pickup-suggestions"></div>
+            </div>
+            <div class="picker-hint">Not listed? Tap the map to drop an exact pin — we'll save it for next time</div>
+            <div class="mini-map" id="pickup-map"></div>
+            <input type="text" id="pickup_landmark" placeholder="Landmark (e.g. beside the blue kiosk)" style="margin-top:-6px;">
+          </div>
+
+          <div class="field">
+            <label for="destination_address">Destination address</label>
+            <div class="address-search-wrap">
+              <input type="text" id="destination_address" required placeholder="Search a saved address, or type + pin below" autocomplete="off">
+              <div class="address-suggestions" id="destination-suggestions"></div>
+            </div>
+            <div class="picker-hint">Not listed? Tap the map to drop an exact pin — we'll save it for next time</div>
+            <div class="mini-map" id="destination-map"></div>
+            <input type="text" id="destination_landmark" placeholder="Landmark (e.g. opposite NNPC station)" style="margin-top:-6px;">
+          </div>
+
+          <div class="distance-preview" id="distance-preview" style="display:none;">
+            <span>Straight-line distance</span>
+            <span id="distance-preview-value">—</span>
+          </div>
+
+          <div class="field">
+            <label for="rider_id">Assign rider</label>
+            <select id="rider_id" required><option value="">Loading riders…</option></select>
+          </div>
+
+          <button type="submit" class="submit-btn" id="submit-btn">Create delivery</button>
+          <div class="form-msg" id="form-msg"></div>
+          <div id="delivery-whatsapp-container"></div>
+        </form>
       </div>
     </div>
 
-    <div>
+    <!-- ---------- DELIVERIES ---------- -->
+    <div class="content-section" id="section-deliveries">
+      <div class="section-header"><div><h2>Deliveries</h2><p>Every delivery your business has created.</p></div></div>
+
+      <div class="track-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input type="text" id="track-search-input" placeholder="Search by code, customer, or rider...">
+      </div>
+
       <div class="deliveries-header">
-        <div class="panel-title" style="margin-bottom:0;">Deliveries</div>
+        <span class="panel-title" style="margin:0;">All Deliveries</span>
         <span class="delivery-count" id="delivery-count">0 total</span>
       </div>
       <div id="deliveries-list">
@@ -977,7 +652,57 @@
         </div>
       </div>
     </div>
-  </div>
+
+    <!-- ---------- RIDERS ---------- -->
+    <div class="content-section" id="section-riders">
+      <div class="section-header"><div><h2>Riders</h2><p>Add and manage the people who deliver for you.</p></div></div>
+
+      <div class="form-card">
+        <form id="rider-form">
+          <div class="rider-photo-upload">
+            <div class="photo-preview" id="rider-photo-preview">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
+            </div>
+            <label class="photo-upload-btn">Upload photo<input type="file" id="rider_photo" accept="image/*" style="display:none;"></label>
+          </div>
+          <div class="field"><label for="rider_name">Rider name</label><input type="text" id="rider_name" required placeholder="e.g. Ifeanyi Obi"></div>
+          <div class="field"><label for="rider_email">Rider email</label><input type="email" id="rider_email" required placeholder="rider@email.com"></div>
+          <div class="field-row">
+            <div class="field"><label for="rider_phone">Phone</label><input type="tel" id="rider_phone" placeholder="080X XXX XXXX"></div>
+            <div class="field"><label for="rider_vehicle">Vehicle</label>
+              <select id="rider_vehicle"><option value="bike">Bike</option><option value="car">Car</option><option value="foot">On foot</option></select>
+            </div>
+          </div>
+          <button type="submit" class="submit-btn" id="rider-submit-btn">Add rider &amp; send invite</button>
+          <div class="form-msg" id="rider-form-msg"></div>
+          <div id="rider-whatsapp-container"></div>
+        </form>
+      </div>
+
+      <div class="panel-title" style="margin-top:28px;">Your Riders</div>
+      <div class="riders-panel" id="riders-panel">
+        <div style="font-size:13px; color:var(--slate-light);">Loading riders…</div>
+      </div>
+    </div>
+
+    <!-- ---------- ANALYTICS ---------- -->
+    <div class="content-section" id="section-analytics">
+      <div class="section-header"><div><h2>Analytics</h2><p>How your deliveries are performing over time.</p></div></div>
+
+      <div class="analytics-cards">
+        <div class="mini-analytics-card"><div class="mini-analytics-value amber" id="an-success-rate">—</div><div class="mini-analytics-label">Success rate</div></div>
+        <div class="mini-analytics-card"><div class="mini-analytics-value red" id="an-failed">0</div><div class="mini-analytics-label">Failed deliveries</div></div>
+        <div class="mini-analytics-card"><div class="mini-analytics-value" id="an-avg-time">—</div><div class="mini-analytics-label">Avg delivery time</div></div>
+        <div class="mini-analytics-card"><div class="mini-analytics-value" id="an-avg-rating">—</div><div class="mini-analytics-label">Avg customer rating</div></div>
+      </div>
+
+      <div class="chart-row">
+        <div class="chart-card"><div class="chart-title">Deliveries — last 7 days</div><canvas id="volume-chart" height="160"></canvas></div>
+        <div class="chart-card"><div class="chart-title">Success vs Failed</div><canvas id="outcome-chart" height="160"></canvas></div>
+      </div>
+    </div>
+
+  </main>
 </div>
 
 <script>
@@ -990,96 +715,83 @@
     auth: { flowType: 'implicit' }
   });
 
-  document.querySelectorAll('.tab-btn').forEach(btn => {
+  // ---------- Auth tab switching ----------
+  document.querySelectorAll('[data-authtab]').forEach(btn => {
     btn.addEventListener('click', () => {
-      const isAuthTab = btn.hasAttribute('data-authtab');
-      const targetId = isAuthTab ? btn.dataset.authtab : btn.dataset.tab;
-      const scopeSelector = isAuthTab ? '[data-authtab]' : '[data-tab]';
-
-      document.querySelectorAll(scopeSelector).forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('[data-authtab]').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-
-      const panelIds = isAuthTab ? ['login-panel', 'signup-panel'] : ['delivery-tab', 'rider-tab'];
-      panelIds.forEach(id => document.getElementById(id).classList.remove('active'));
-      document.getElementById(targetId).classList.add('active');
-
-      window.dispatchEvent(new Event('resize')); // nudges Leaflet maps to redraw correctly
+      document.getElementById('login-panel').classList.remove('active');
+      document.getElementById('signup-panel').classList.remove('active');
+      document.getElementById(btn.dataset.authtab).classList.add('active');
     });
   });
+
+  // ---------- Sidebar section switching ----------
+  document.querySelectorAll('.nav-item').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(btn.dataset.section).classList.add('active');
+      window.dispatchEvent(new Event('resize')); // redraw Leaflet maps correctly when their section becomes visible
+      if (btn.dataset.section === 'section-analytics') loadAnalytics();
+    });
+  });
+
+  function goToSection(sectionId) {
+    document.querySelector(`[data-section="${sectionId}"]`).click();
+  }
 
   // ---------- Business Auth ----------
   let currentBusiness = null;
 
   const authView = document.getElementById('auth-view');
   const dashboardView = document.getElementById('dashboard-view');
-  const headerStatus = document.getElementById('header-status');
   const logoutBtn = document.getElementById('logout-btn');
   const businessNameLabel = document.getElementById('business-name-label');
 
   async function getOrCreateBusiness(user, businessNameForSignup) {
     const { data: existing } = await supabaseClient
-      .from('businesses')
-      .select('*')
-      .eq('auth_user_id', user.id)
-      .limit(1);
-
+      .from('businesses').select('*').eq('auth_user_id', user.id).limit(1);
     if (existing && existing.length > 0) return existing[0];
 
     const { data: created, error } = await supabaseClient
       .from('businesses')
       .insert({ auth_user_id: user.id, name: businessNameForSignup || 'My Business', email: user.email })
-      .select()
-      .single();
+      .select().single();
 
-    if (error) {
-      console.error('Could not create business record:', error);
-      return null;
-    }
+    if (error) { console.error('Could not create business record:', error); return null; }
     return created;
   }
 
   async function enterDashboard(business) {
     currentBusiness = business;
     authView.style.display = 'none';
-    dashboardView.style.display = 'block';
+    dashboardView.style.display = 'flex';
     dashboardView.classList.add('fade-in');
-    headerStatus.style.display = 'flex';
-    logoutBtn.style.display = 'inline-block';
     businessNameLabel.textContent = business.name;
-
     loadRiders();
     loadDeliveries();
   }
 
   function showAuthView() {
     currentBusiness = null;
-    authView.style.display = 'block';
+    authView.style.display = 'flex';
     dashboardView.style.display = 'none';
-    headerStatus.style.display = 'none';
-    logoutBtn.style.display = 'none';
   }
 
   document.getElementById('login-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = document.getElementById('login-btn');
     const msg = document.getElementById('login-msg');
-    btn.disabled = true;
-    btn.textContent = 'Logging in…';
-    msg.className = 'form-msg';
+    btn.disabled = true; btn.textContent = 'Logging in…'; msg.className = 'form-msg';
 
     const email = document.getElementById('login-email').value;
     const password = document.getElementById('login-password').value;
-
     const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
 
-    btn.disabled = false;
-    btn.textContent = 'Log in';
-
-    if (error) {
-      msg.textContent = error.message;
-      msg.className = 'form-msg error';
-      return;
-    }
+    btn.disabled = false; btn.textContent = 'Log in';
+    if (error) { msg.textContent = error.message; msg.className = 'form-msg error'; return; }
 
     const business = await getOrCreateBusiness(data.user);
     if (business) enterDashboard(business);
@@ -1089,24 +801,15 @@
     e.preventDefault();
     const btn = document.getElementById('signup-btn');
     const msg = document.getElementById('signup-msg');
-    btn.disabled = true;
-    btn.textContent = 'Creating account…';
-    msg.className = 'form-msg';
+    btn.disabled = true; btn.textContent = 'Creating account…'; msg.className = 'form-msg';
 
     const businessName = document.getElementById('signup-business-name').value;
     const email = document.getElementById('signup-email').value;
     const password = document.getElementById('signup-password').value;
-
     const { data, error } = await supabaseClient.auth.signUp({ email, password });
 
-    btn.disabled = false;
-    btn.textContent = 'Create account';
-
-    if (error) {
-      msg.textContent = error.message;
-      msg.className = 'form-msg error';
-      return;
-    }
+    btn.disabled = false; btn.textContent = 'Create account';
+    if (error) { msg.textContent = error.message; msg.className = 'form-msg error'; return; }
 
     if (!data.session) {
       msg.textContent = 'Account created! Check your email to confirm before logging in.';
@@ -1123,17 +826,16 @@
     showAuthView();
   });
 
-  // On load, check for an existing session (so refreshing doesn't log the business out)
   supabaseClient.auth.getSession().then(async ({ data: { session } }) => {
     if (session) {
       const business = await getOrCreateBusiness(session.user);
-      if (business) enterDashboard(business);
-      else showAuthView();
+      if (business) enterDashboard(business); else showAuthView();
     } else {
       showAuthView();
     }
   });
 
+  // ---------- Shared refs ----------
   const riderSelect = document.getElementById('rider_id');
   const form = document.getElementById('delivery-form');
   const submitBtn = document.getElementById('submit-btn');
@@ -1143,16 +845,10 @@
   const ridersPanel = document.getElementById('riders-panel');
 
   const statusLabels = {
-    created: 'Created',
-    assigned: 'Assigned',
-    accepted: 'Accepted',
-    tracking_requested: 'Tracking requested',
-    tracking_approved: 'Tracking live',
-    picked_up: 'Picked up',
-    in_transit: 'In transit',
-    arriving: 'Arriving',
-    delivered: 'Delivered',
-    failed: 'Failed'
+    created: 'Created', assigned: 'Assigned', accepted: 'Accepted',
+    tracking_requested: 'Tracking requested', tracking_approved: 'Tracking live',
+    picked_up: 'Picked up', in_transit: 'In transit', arriving: 'Arriving',
+    delivered: 'Delivered', failed: 'Failed'
   };
 
   function tagClass(status) {
@@ -1163,60 +859,35 @@
     return 'created';
   }
 
-  function generateDeliveryCode() {
-    const num = Math.floor(100000 + Math.random() * 900000);
-    return `PPD-${num}`;
-  }
-
-  function generateHandoffPin() {
-    return String(Math.floor(1000 + Math.random() * 9000)); // 4-digit code
-  }
+  function generateDeliveryCode() { return `PPD-${Math.floor(100000 + Math.random() * 900000)}`; }
+  function generateHandoffPin() { return String(Math.floor(1000 + Math.random() * 9000)); }
 
   async function geocodeAddress(address) {
     try {
       const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(address + ', Nigeria')}`;
       const res = await fetch(url);
       const data = await res.json();
-      if (data && data.length > 0) {
-        return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
-      }
-    } catch (e) {
-      console.error('Geocoding failed:', e);
-    }
+      if (data && data.length > 0) return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+    } catch (e) { console.error('Geocoding failed:', e); }
     return null;
   }
 
   function toWhatsAppNumber(phone) {
     if (!phone) return null;
     let digits = phone.replace(/\D/g, '');
-    if (digits.startsWith('0')) {
-      digits = '234' + digits.slice(1);
-    } else if (!digits.startsWith('234')) {
-      digits = '234' + digits;
-    }
+    if (digits.startsWith('0')) digits = '234' + digits.slice(1);
+    else if (!digits.startsWith('234')) digits = '234' + digits;
     return digits;
   }
 
-  // Calls the generate-rider-link Edge Function to get a REAL one-tap
-  // sign-in link (with a working auth token) for use in WhatsApp messages.
-  // Falls back to a plain link if the function isn't deployed yet or fails.
   async function getRiderMagicLink(email) {
     try {
       const { data, error } = await supabaseClient.functions.invoke('generate-rider-link', {
-        body: {
-          email,
-          redirectTo: window.location.origin + '/rider.html'
-        }
+        body: { email, redirectTo: window.location.origin + '/rider.html' }
       });
-      if (error || !data || !data.link) {
-        console.warn('Falling back to plain rider link:', error);
-        return window.location.origin + '/rider.html';
-      }
+      if (error || !data || !data.link) return window.location.origin + '/rider.html';
       return data.link;
-    } catch (e) {
-      console.warn('Edge function call failed, using plain link:', e);
-      return window.location.origin + '/rider.html';
-    }
+    } catch (e) { return window.location.origin + '/rider.html'; }
   }
 
   function whatsappButton(phone, message, label) {
@@ -1231,16 +902,14 @@
   }
 
   let ridersData = [];
-  let manualPickup = null;      // { lat, lng } if business tapped the map
+  let manualPickup = null;
   let manualDestination = null;
 
   function haversineKm(lat1, lng1, lat2, lng2) {
     const R = 6371;
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLng = (lng2 - lng1) * Math.PI / 180;
-    const a = Math.sin(dLat / 2) ** 2 +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-      Math.sin(dLng / 2) ** 2;
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
@@ -1256,29 +925,10 @@
   }
 
   function pinIcon(type) {
-    const color = type === 'pickup' ? '#0F172A' : '#00C896';
     return L.divIcon({
       html: `<div class="pin-marker ${type}"><svg viewBox="0 0 24 24" fill="white"><circle cx="12" cy="12" r="6"/></svg></div>`,
-      className: '',
-      iconSize: [26, 26],
-      iconAnchor: [13, 26]
+      className: '', iconSize: [26, 26], iconAnchor: [13, 26]
     });
-  }
-
-  let pickupMapInstance = null;
-  let destinationMapInstance = null;
-  let pickupMarkerRef = null;
-  let destinationMarkerRef = null;
-
-  function setPickerPoint(map, markerRefSetter, currentMarker, coords, type) {
-    if (currentMarker) {
-      currentMarker.setLatLng([coords.lat, coords.lng]);
-    } else {
-      currentMarker = L.marker([coords.lat, coords.lng], { icon: pinIcon(type), draggable: true }).addTo(map);
-      markerRefSetter(currentMarker);
-    }
-    map.setView([coords.lat, coords.lng], 15);
-    return currentMarker;
   }
 
   function setupAddressField(inputId, suggestionsId, mapId, type) {
@@ -1287,9 +937,7 @@
     let debounceTimer = null;
 
     const map = L.map(mapId, { zoomControl: false }).setView([6.2104, 7.0716], 11);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
     setTimeout(() => map.invalidateSize(), 300);
 
     let marker = null;
@@ -1300,50 +948,31 @@
 
     map.on('click', (e) => {
       const { lat, lng } = e.latlng;
-      if (marker) {
-        marker.setLatLng([lat, lng]);
-      } else {
+      if (marker) { marker.setLatLng([lat, lng]); }
+      else {
         marker = L.marker([lat, lng], { icon: pinIcon(type), draggable: true }).addTo(map);
-        marker.on('dragend', () => {
-          const pos = marker.getLatLng();
-          setCoords({ lat: pos.lat, lng: pos.lng });
-        });
+        marker.on('dragend', () => { const pos = marker.getLatLng(); setCoords({ lat: pos.lat, lng: pos.lng }); });
       }
       setCoords({ lat, lng });
     });
 
-    if (type === 'pickup') { pickupMapInstance = map; } else { destinationMapInstance = map; }
-
-    // Search saved locations as the business types
     input.addEventListener('input', () => {
       clearTimeout(debounceTimer);
       const term = input.value.trim();
-      if (type === 'pickup') manualPickup = null; else manualDestination = null; // typing invalidates a prior pin/selection
+      if (type === 'pickup') manualPickup = null; else manualDestination = null;
       updateDistancePreview();
 
-      if (term.length < 2) {
-        suggestionsBox.classList.remove('visible');
-        return;
-      }
+      if (term.length < 2) { suggestionsBox.classList.remove('visible'); return; }
 
       debounceTimer = setTimeout(async () => {
-        const { data } = await supabaseClient
-          .from('locations')
-          .select('id, name, lat, lng')
-          .ilike('name', `%${term}%`)
-          .limit(6);
-
-        if (!data || data.length === 0) {
-          suggestionsBox.classList.remove('visible');
-          return;
-        }
+        const { data } = await supabaseClient.from('locations').select('id, name, lat, lng').ilike('name', `%${term}%`).limit(6);
+        if (!data || data.length === 0) { suggestionsBox.classList.remove('visible'); return; }
 
         suggestionsBox.innerHTML = data.map(loc => `
           <div class="address-suggestion-item" data-lat="${loc.lat}" data-lng="${loc.lng}" data-name="${loc.name.replace(/"/g, '&quot;')}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C7.58 2 4 5.58 4 10c0 5.25 8 12 8 12s8-6.75 8-12c0-4.42-3.58-8-8-8z"/><circle cx="12" cy="10" r="3"/></svg>
             ${loc.name}
-          </div>
-        `).join('');
+          </div>`).join('');
         suggestionsBox.classList.add('visible');
 
         suggestionsBox.querySelectorAll('.address-suggestion-item').forEach(item => {
@@ -1353,14 +982,10 @@
             input.value = item.dataset.name;
             suggestionsBox.classList.remove('visible');
 
-            if (marker) {
-              marker.setLatLng([lat, lng]);
-            } else {
+            if (marker) { marker.setLatLng([lat, lng]); }
+            else {
               marker = L.marker([lat, lng], { icon: pinIcon(type), draggable: true }).addTo(map);
-              marker.on('dragend', () => {
-                const pos = marker.getLatLng();
-                setCoords({ lat: pos.lat, lng: pos.lng });
-              });
+              marker.on('dragend', () => { const pos = marker.getLatLng(); setCoords({ lat: pos.lat, lng: pos.lng }); });
             }
             map.setView([lat, lng], 15);
             setCoords({ lat, lng });
@@ -1370,41 +995,28 @@
     });
 
     document.addEventListener('click', (e) => {
-      if (!suggestionsBox.contains(e.target) && e.target !== input) {
-        suggestionsBox.classList.remove('visible');
-      }
+      if (!suggestionsBox.contains(e.target) && e.target !== input) suggestionsBox.classList.remove('visible');
     });
   }
 
   setupAddressField('pickup_address', 'pickup-suggestions', 'pickup-map', 'pickup');
   setupAddressField('destination_address', 'destination-suggestions', 'destination-map', 'destination');
 
-  // After a delivery is created with a manually-pinned point, save it to the
-  // shared address book — unless a very similar location already exists nearby.
   async function saveLocationIfNew(name, lat, lng) {
     if (!name || !lat || !lng) return;
     try {
-      const { data: nearby } = await supabaseClient
-        .from('locations')
-        .select('id, lat, lng')
-        .gte('lat', lat - 0.003).lte('lat', lat + 0.003)
-        .gte('lng', lng - 0.003).lte('lng', lng + 0.003);
-
-      const isDuplicate = (nearby || []).some(loc => haversineKm(lat, lng, loc.lat, loc.lng) < 0.1); // within 100m
+      const { data: nearby } = await supabaseClient.from('locations').select('id, lat, lng')
+        .gte('lat', lat - 0.003).lte('lat', lat + 0.003).gte('lng', lng - 0.003).lte('lng', lng + 0.003);
+      const isDuplicate = (nearby || []).some(loc => haversineKm(lat, lng, loc.lat, loc.lng) < 0.1);
       if (isDuplicate) return;
-
       await supabaseClient.from('locations').insert({ name, lat, lng });
-    } catch (e) {
-      console.warn('Could not save location:', e);
-    }
+    } catch (e) { console.warn('Could not save location:', e); }
   }
 
   async function loadRiders() {
     if (!currentBusiness) return;
-    const { data, error } = await supabaseClient
-      .from('riders')
-      .select('id, name, vehicle_type, email, phone, status')
-      .eq('business_id', currentBusiness.id);
+    const { data, error } = await supabaseClient.from('riders')
+      .select('id, name, vehicle_type, email, phone, status').eq('business_id', currentBusiness.id);
 
     if (error || !data || data.length === 0) {
       riderSelect.innerHTML = '<option value="">No riders yet — add one first</option>';
@@ -1415,7 +1027,6 @@
 
     ridersData = data;
     document.getElementById('stat-riders').textContent = data.length;
-
     riderSelect.innerHTML = '<option value="">Select a rider</option>' +
       data.map(r => `<option value="${r.id}">${r.name}${r.vehicle_type ? ' · ' + r.vehicle_type : ''}</option>`).join('');
 
@@ -1427,28 +1038,16 @@
           <div class="rider-info-meta">${r.vehicle_type || ''}${r.email ? ' · ' + r.email : ''}</div>
         </div>
         <span class="rider-status-pill">${r.status || 'offline'}</span>
-      </div>
-    `).join('');
+      </div>`).join('');
   }
-
-  document.getElementById('analytics-toggle-btn').addEventListener('click', async () => {
-    const panel = document.getElementById('analytics-panel');
-    const opening = panel.style.display === 'none';
-    panel.style.display = opening ? 'block' : 'none';
-    if (opening) await loadAnalytics();
-  });
 
   let volumeChartInstance = null;
   let outcomeChartInstance = null;
 
   async function loadAnalytics() {
     if (!currentBusiness) return;
-
-    const { data } = await supabaseClient
-      .from('deliveries')
-      .select('status, rating, created_at, delivered_at')
-      .eq('business_id', currentBusiness.id);
-
+    const { data } = await supabaseClient.from('deliveries')
+      .select('status, rating, created_at, delivered_at').eq('business_id', currentBusiness.id);
     if (!data) return;
 
     const total = data.length;
@@ -1458,28 +1057,22 @@
 
     const ratedDeliveries = delivered.filter(d => d.rating);
     const avgRating = ratedDeliveries.length > 0
-      ? (ratedDeliveries.reduce((sum, d) => sum + d.rating, 0) / ratedDeliveries.length).toFixed(1) + ' ★'
-      : '—';
+      ? (ratedDeliveries.reduce((sum, d) => sum + d.rating, 0) / ratedDeliveries.length).toFixed(1) + ' ★' : '—';
 
     const timedDeliveries = delivered.filter(d => d.delivered_at);
     const avgMinutes = timedDeliveries.length > 0
-      ? Math.round(timedDeliveries.reduce((sum, d) => sum + (new Date(d.delivered_at) - new Date(d.created_at)) / 60000, 0) / timedDeliveries.length) + ' min'
-      : '—';
+      ? Math.round(timedDeliveries.reduce((sum, d) => sum + (new Date(d.delivered_at) - new Date(d.created_at)) / 60000, 0) / timedDeliveries.length) + ' min' : '—';
 
     document.getElementById('an-success-rate').textContent = `${successRate}%`;
     document.getElementById('an-failed').textContent = failed;
     document.getElementById('an-avg-time').textContent = avgMinutes;
     document.getElementById('an-avg-rating').textContent = avgRating;
 
-    // Volume over last 7 days
-    const days = [];
-    const counts = [];
+    const days = [], counts = [];
     for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      const label = d.toLocaleDateString([], { weekday: 'short' });
+      const d = new Date(); d.setDate(d.getDate() - i);
+      days.push(d.toLocaleDateString([], { weekday: 'short' }));
       const dayStr = d.toDateString();
-      days.push(label);
       counts.push(data.filter(x => new Date(x.created_at).toDateString() === dayStr).length);
     }
 
@@ -1487,14 +1080,8 @@
     if (volumeChartInstance) volumeChartInstance.destroy();
     volumeChartInstance = new Chart(volumeCtx, {
       type: 'bar',
-      data: {
-        labels: days,
-        datasets: [{ data: counts, backgroundColor: '#2454FF', borderRadius: 6, maxBarThickness: 32 }]
-      },
-      options: {
-        plugins: { legend: { display: false } },
-        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
-      }
+      data: { labels: days, datasets: [{ data: counts, backgroundColor: '#E8A33D', borderRadius: 6, maxBarThickness: 32 }] },
+      options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
     });
 
     const outcomeCtx = document.getElementById('outcome-chart');
@@ -1503,14 +1090,9 @@
       type: 'doughnut',
       data: {
         labels: ['Delivered', 'Failed', 'In progress'],
-        datasets: [{
-          data: [delivered.length, failed, total - delivered.length - failed],
-          backgroundColor: ['#00C896', '#B91C1C', '#E7EAF0']
-        }]
+        datasets: [{ data: [delivered.length, failed, total - delivered.length - failed], backgroundColor: ['#16A34A', '#B91C1C', '#E7EAF0'] }]
       },
-      options: {
-        plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } }
-      }
+      options: { plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } } }
     });
   }
 
@@ -1518,11 +1100,9 @@
 
   async function loadDeliveries() {
     if (!currentBusiness) return;
-    const { data, error } = await supabaseClient
-      .from('deliveries')
+    const { data, error } = await supabaseClient.from('deliveries')
       .select('id, delivery_code, customer_name, pickup_address, destination_address, status, rider_id, riders(name)')
-      .eq('business_id', currentBusiness.id)
-      .order('created_at', { ascending: false });
+      .eq('business_id', currentBusiness.id).order('created_at', { ascending: false });
 
     if (error || !data || data.length === 0) {
       lastLoadedDeliveries = [];
@@ -1542,13 +1122,11 @@
     document.getElementById('stat-total').textContent = data.length;
     document.getElementById('stat-delivered').textContent = data.filter(d => d.status === 'delivered').length;
     document.getElementById('stat-active').textContent = data.filter(d => d.status !== 'delivered' && d.status !== 'failed').length;
-
     renderDeliveriesList(data);
   }
 
   function renderDeliveriesList(data) {
     deliveryCount.textContent = `${data.length} total`;
-
     if (data.length === 0) {
       deliveriesList.innerHTML = `
         <div class="empty-state">
@@ -1566,24 +1144,18 @@
             <span class="tag ${tagClass(d.status)}">${statusLabels[d.status] || d.status}</span>
           </div>
           <div class="stub-customer">${d.customer_name}</div>
-          <div class="stub-route">
-            <span>${d.pickup_address}</span>
-            <span class="arrow">→</span>
-            <span>${d.destination_address}</span>
-          </div>
+          <div class="stub-route"><span>${d.pickup_address}</span><span class="arrow">→</span><span>${d.destination_address}</span></div>
         </div>
         <div class="stub-side">
           <div class="stub-rider-label">Rider</div>
           <div class="stub-rider-name">${d.riders ? d.riders.name : 'Unassigned'}</div>
         </div>
-      </div>
-    `).join('') + '</div>';
+      </div>`).join('') + '</div>';
   }
 
   document.getElementById('track-search-input').addEventListener('input', (e) => {
     const term = e.target.value.trim().toLowerCase();
     if (!term) { renderDeliveriesList(lastLoadedDeliveries); return; }
-
     const filtered = lastLoadedDeliveries.filter(d =>
       d.delivery_code.toLowerCase().includes(term) ||
       d.customer_name.toLowerCase().includes(term) ||
@@ -1592,19 +1164,9 @@
     renderDeliveriesList(filtered);
   });
 
-  document.getElementById('qa-new-delivery').addEventListener('click', () => {
-    document.querySelector('[data-tab="delivery-tab"]').click();
-    document.getElementById('customer_name').scrollIntoView({ behavior: 'smooth', block: 'center' });
-  });
-
-  document.getElementById('qa-add-rider').addEventListener('click', () => {
-    document.querySelector('[data-tab="rider-tab"]').click();
-  });
-
-  document.getElementById('qa-analytics').addEventListener('click', () => {
-    document.getElementById('analytics-toggle-btn').click();
-    document.getElementById('analytics-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
-  });
+  document.getElementById('qa-new-delivery').addEventListener('click', () => goToSection('section-create'));
+  document.getElementById('qa-add-rider').addEventListener('click', () => goToSection('section-riders'));
+  document.getElementById('qa-analytics').addEventListener('click', () => goToSection('section-analytics'));
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -1615,13 +1177,10 @@
     const pickupAddress = document.getElementById('pickup_address').value;
     const destinationAddress = document.getElementById('destination_address').value;
 
-    // Prefer the exact map-picked point if the business tapped one;
-    // fall back to free geocoding of the typed address otherwise.
     let pickupCoords = manualPickup;
     let destinationCoords = manualDestination;
 
     if (!pickupCoords || !destinationCoords) {
-      submitBtn.textContent = 'Locating addresses…';
       const [geoPickup, geoDestination] = await Promise.all([
         pickupCoords ? Promise.resolve(pickupCoords) : geocodeAddress(pickupAddress),
         destinationCoords ? Promise.resolve(destinationCoords) : geocodeAddress(destinationAddress)
@@ -1663,13 +1222,8 @@
       formMsg.textContent = `Delivery ${payload.delivery_code} created and assigned.`;
       formMsg.className = 'form-msg success';
 
-      // Grow the shared address book with any newly-pinned locations
-      if (payload.pickup_lat && payload.pickup_lng) {
-        saveLocationIfNew(pickupAddress, payload.pickup_lat, payload.pickup_lng);
-      }
-      if (payload.destination_lat && payload.destination_lng) {
-        saveLocationIfNew(destinationAddress, payload.destination_lat, payload.destination_lng);
-      }
+      if (payload.pickup_lat && payload.pickup_lng) saveLocationIfNew(pickupAddress, payload.pickup_lat, payload.pickup_lng);
+      if (payload.destination_lat && payload.destination_lng) saveLocationIfNew(destinationAddress, payload.destination_lat, payload.destination_lng);
 
       const trackingUrl = `${window.location.origin}/customer.html?code=${payload.delivery_code}`;
       const waMessage = `Hi ${payload.customer_name}, your delivery (${payload.delivery_code}) is on the way! Track it live here: ${trackingUrl}`;
@@ -1684,17 +1238,13 @@
       const assignedRider = ridersData.find(r => r.id === payload.rider_id);
       if (assignedRider) {
         if (assignedRider.email) {
-          await supabaseClient.auth.signInWithOtp({
-            email: assignedRider.email,
-            options: { emailRedirectTo: window.location.origin + '/rider.html' }
-          });
+          await supabaseClient.auth.signInWithOtp({ email: assignedRider.email, options: { emailRedirectTo: window.location.origin + '/rider.html' } });
         }
         if (assignedRider.phone && assignedRider.email) {
           const riderUrl = await getRiderMagicLink(assignedRider.email);
           const riderWaMessage = `Hi ${assignedRider.name}, you have a new PinPoint delivery (${payload.delivery_code}) for ${payload.customer_name}. Open your rider page to view and accept it: ${riderUrl}`;
           const existing = document.getElementById('delivery-whatsapp-container').innerHTML;
-          document.getElementById('delivery-whatsapp-container').innerHTML =
-            existing + whatsappButton(assignedRider.phone, riderWaMessage, `Notify ${assignedRider.name} via WhatsApp`);
+          document.getElementById('delivery-whatsapp-container').innerHTML = existing + whatsappButton(assignedRider.phone, riderWaMessage, `Notify ${assignedRider.name} via WhatsApp`);
         }
       }
     }
@@ -1704,14 +1254,11 @@
   const riderSubmitBtn = document.getElementById('rider-submit-btn');
   const riderFormMsg = document.getElementById('rider-form-msg');
 
-  // Live preview when a photo is selected
   document.getElementById('rider_photo').addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => {
-      document.getElementById('rider-photo-preview').innerHTML = `<img src="${ev.target.result}">`;
-    };
+    reader.onload = (ev) => { document.getElementById('rider-photo-preview').innerHTML = `<img src="${ev.target.result}">`; };
     reader.readAsDataURL(file);
   });
 
@@ -1720,19 +1267,11 @@
     try {
       const fileExt = file.name.split('.').pop();
       const filePath = `${riderEmail.replace(/[^a-zA-Z0-9]/g, '_')}-${Date.now()}.${fileExt}`;
-      const { error: uploadError } = await supabaseClient.storage
-        .from('rider-photos')
-        .upload(filePath, file, { upsert: true });
-      if (uploadError) {
-        console.error('Photo upload failed:', uploadError);
-        return null;
-      }
+      const { error: uploadError } = await supabaseClient.storage.from('rider-photos').upload(filePath, file, { upsert: true });
+      if (uploadError) { console.error('Photo upload failed:', uploadError); return null; }
       const { data } = supabaseClient.storage.from('rider-photos').getPublicUrl(filePath);
       return data.publicUrl;
-    } catch (e) {
-      console.error('Photo upload error:', e);
-      return null;
-    }
+    } catch (e) { console.error('Photo upload error:', e); return null; }
   }
 
   riderForm.addEventListener('submit', async (e) => {
@@ -1754,27 +1293,16 @@
       riderSubmitBtn.textContent = 'Adding…';
     }
 
-    // Check if a rider with this email already exists — update instead of duplicating
-    const { data: existingRider } = await supabaseClient
-      .from('riders')
-      .select('id')
-      .eq('email', email)
-      .limit(1);
-
+    const { data: existingRider } = await supabaseClient.from('riders').select('id').eq('email', email).limit(1);
     const riderFields = { name, phone, vehicle_type, business_id: currentBusiness.id };
     if (photo_url) riderFields.photo_url = photo_url;
 
     let insertError = null;
     if (existingRider && existingRider.length > 0) {
-      const { error } = await supabaseClient
-        .from('riders')
-        .update(riderFields)
-        .eq('id', existingRider[0].id);
+      const { error } = await supabaseClient.from('riders').update(riderFields).eq('id', existingRider[0].id);
       insertError = error;
     } else {
-      const { error } = await supabaseClient
-        .from('riders')
-        .insert({ ...riderFields, email, status: 'offline' });
+      const { error } = await supabaseClient.from('riders').insert({ ...riderFields, email, status: 'offline' });
       insertError = error;
     }
 
@@ -1786,10 +1314,7 @@
       return;
     }
 
-    const { error: otpError } = await supabaseClient.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: window.location.origin + '/rider.html' }
-    });
+    const { error: otpError } = await supabaseClient.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.origin + '/rider.html' } });
 
     riderSubmitBtn.disabled = false;
     riderSubmitBtn.textContent = 'Add rider & send invite';
@@ -1800,21 +1325,16 @@
     } else {
       riderFormMsg.textContent = `${name} added — invite sent to ${email}.`;
       riderFormMsg.className = 'form-msg success';
-
       const magicLink = await getRiderMagicLink(email);
       const waMessage = `Hi ${name}, you've been added as a rider on PinPoint! Tap here to sign in and view your deliveries: ${magicLink}`;
       document.getElementById('rider-whatsapp-container').innerHTML = whatsappButton(phone, waMessage, 'Send invite via WhatsApp');
-
       riderForm.reset();
     }
 
     loadRiders();
   });
 
-  loadRiders();
-  loadDeliveries();
-
-  setInterval(() => { loadDeliveries(); loadRiders(); }, 5000);
+  setInterval(() => { if (currentBusiness) { loadDeliveries(); loadRiders(); } }, 5000);
 </script>
 
 </body>

@@ -13,15 +13,19 @@
   :root {
     --bg: #FAFBFC;
     --surface: #FFFFFF;
-    --ink: #0F172A;
+    --ink: #16302A;
     --slate: #64748B;
     --slate-light: #94A3B8;
     --border: #E5E9F0;
-    --primary: #2454FF;
-    --primary-dark: #1A3FD1;
-    --primary-tint: #EEF2FF;
-    --live: #00C896;
-    --live-tint: #E6FBF4;
+    --brand: #16302A;
+    --brand-light: #1F4239;
+    --cream: #F7F3EA;
+    --cream-dim: #C7D6CC;
+    --primary: #E8A33D;
+    --primary-dark: #D68A28;
+    --primary-tint: #FDF3E2;
+    --live: #16A34A;
+    --live-tint: #ECFDF3;
     --warn: #F59E0B;
     --warn-tint: #FFF7E6;
     --radius: 16px;
@@ -49,8 +53,7 @@
     align-items: center;
     gap: 10px;
     padding: 14px 18px;
-    border-bottom: 1px solid var(--border);
-    background: var(--surface);
+    background: var(--brand);
     position: sticky;
     top: 0;
     z-index: 20;
@@ -59,18 +62,42 @@
   .brand-mark {
     width: 30px; height: 30px;
     border-radius: 8px;
-    background: linear-gradient(135deg, var(--primary), #5B7FFF);
+    background: linear-gradient(135deg, var(--primary), #F4C06B);
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
   }
   .brand-mark svg { width: 16px; height: 16px; }
-  .brand-name { font-size: 16px; font-weight: 700; }
+  .brand-name { font-size: 16px; font-weight: 700; color: #fff; }
 
   .container {
     max-width: 520px;
     margin: 0 auto;
     padding: 18px 16px 50px;
   }
+
+  .customer-tabs {
+    display: flex;
+    background: #F1F1EE;
+    padding: 4px;
+    border-radius: 11px;
+    margin-bottom: 16px;
+  }
+  .customer-tab-btn {
+    flex: 1;
+    padding: 9px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--slate);
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .customer-tab-btn.active { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .customer-tab-panel { display: none; }
+  .customer-tab-panel.active { display: block; animation: fade-in 0.25s ease; }
+  @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
 
   .empty-state {
     border: 1.5px dashed var(--border);
@@ -112,6 +139,7 @@
   .tag.accepted { background: var(--primary-tint); color: var(--primary); }
   .tag.live { background: var(--live-tint); color: #067A5C; }
   .tag.delivered { background: #F1F5F9; color: var(--slate); }
+  .tag.failed { background: #FEF2F2; color: #B91C1C; }
 
   .rider-row {
     display: flex;
@@ -192,6 +220,7 @@
     font-size: 11px;
     z-index: 2;
   }
+  .vehicle-badge svg { width: 12px; height: 12px; }
 
   .heading-arrow {
     position: absolute;
@@ -418,7 +447,7 @@
 
   /* ---------- Recap card ---------- */
   .recap-card {
-    background: linear-gradient(135deg, var(--primary), #5B7FFF);
+    background: linear-gradient(135deg, var(--primary), #F4C06B);
     border-radius: var(--radius);
     padding: 24px;
     margin-bottom: 14px;
@@ -447,7 +476,7 @@
 
 <header>
   <div class="brand-mark">
-    <svg viewBox="0 0 24 24" fill="none"><path d="M12 2C7.58 2 4 5.58 4 10c0 5.25 8 12 8 12s8-6.75 8-12c0-4.42-3.58-8-8-8z" fill="white"/><circle cx="12" cy="10" r="3" fill="#2454FF"/></svg>
+    <svg viewBox="0 0 24 24" fill="none"><path d="M12 2C7.58 2 4 5.58 4 10c0 5.25 8 12 8 12s8-6.75 8-12c0-4.42-3.58-8-8-8z" fill="white"/><circle cx="12" cy="10" r="3" fill="#16302A"/></svg>
   </div>
   <span class="brand-name">PinPoint</span>
 </header>
@@ -483,10 +512,12 @@
     picked_up: 'Picked up',
     in_transit: 'In transit',
     arriving: 'Arriving',
-    delivered: 'Delivered'
+    delivered: 'Delivered',
+    failed: 'Failed'
   };
 
   function tagClass(d) {
+    if (d.status === 'failed') return 'failed';
     if (d.status === 'delivered') return 'delivered';
     if (d.tracking_approved) return 'live';
     if (d.status === 'assigned') return 'assigned';
@@ -614,8 +645,9 @@
       ? `<img src="${rider.photo_url}" alt="${rider.name}">`
       : '🏍️';
 
-    const pickupLandmark = delivery.pickup_landmark ? `<div class="landmark-line">📍 ${delivery.pickup_landmark}</div>` : '';
-    const destLandmark = delivery.destination_landmark ? `<div class="landmark-line">📍 ${delivery.destination_landmark}</div>` : '';
+    const landmarkIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:11px;height:11px;vertical-align:-1px;margin-right:3px;"><path d="M12 2C7.58 2 4 5.58 4 10c0 5.25 8 12 8 12s8-6.75 8-12c0-4.42-3.58-8-8-8z"/><circle cx="12" cy="10" r="3"/></svg>`;
+    const pickupLandmark = delivery.pickup_landmark ? `<div class="landmark-line">${landmarkIcon}${delivery.pickup_landmark}</div>` : '';
+    const destLandmark = delivery.destination_landmark ? `<div class="landmark-line">${landmarkIcon}${delivery.destination_landmark}</div>` : '';
 
     const pinCardHtml = (delivery.handoff_pin && delivery.status !== 'delivered') ? `
       <div class="pin-card">
@@ -646,29 +678,47 @@
 
       <div id="action-area"></div>
 
-      <div id="recap-area"></div>
-      <div id="proof-photo-area"></div>
-      <div id="rating-area"></div>
-
-      <div class="wrong-direction-banner" id="wrong-direction-banner">
-        ⚠️ The rider appears to have moved off the expected route.
+      <div class="customer-tabs">
+        <button class="customer-tab-btn active" data-ctab="ctab-tracking">Live Tracking</button>
+        <button class="customer-tab-btn" data-ctab="ctab-updates">Updates &amp; Details</button>
       </div>
 
-      <div id="map"></div>
-
-      <div class="stats-row" id="stats-row" style="display:none;">
-        <div class="stat-card">
-          <div class="stat-label">Distance to you</div>
-          <div class="stat-value" id="stat-distance">—</div>
+      <div class="customer-tab-panel active" id="ctab-tracking">
+        <div class="wrong-direction-banner" id="wrong-direction-banner">
+          ⚠️ The rider appears to have moved off the expected route.
         </div>
-        <div class="stat-card">
-          <div class="stat-label">Est. arrival</div>
-          <div class="stat-value" id="stat-eta">—</div>
+
+        <div id="map"></div>
+
+        <div class="stats-row" id="stats-row" style="display:none;">
+          <div class="stat-card">
+            <div class="stat-label">Distance to you</div>
+            <div class="stat-value" id="stat-distance">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Est. arrival</div>
+            <div class="stat-value" id="stat-eta">—</div>
+          </div>
         </div>
       </div>
 
-      <div class="updates-list" id="updates-list"></div>
+      <div class="customer-tab-panel" id="ctab-updates">
+        <div id="recap-area"></div>
+        <div id="proof-photo-area"></div>
+        <div id="rating-area"></div>
+        <div class="updates-list" id="updates-list"></div>
+      </div>
     `;
+
+    document.querySelectorAll('.customer-tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.customer-tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.customer-tab-panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(btn.dataset.ctab).classList.add('active');
+        if (map) setTimeout(() => map.invalidateSize(), 150);
+      });
+    });
 
     initMap();
     updateActionArea();
@@ -687,7 +737,7 @@
     if (!actionArea) return;
 
     if (delivery.status === 'delivered') {
-      actionArea.innerHTML = `<div class="live-note">✅ This delivery has been completed.</div>`;
+      actionArea.innerHTML = `<div class="live-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;vertical-align:-2px;margin-right:4px;"><path d="M9 12l2 2 4-4M12 2a10 10 0 100 20 10 10 0 000-20z"/></svg>This delivery has been completed.</div>`;
       renderProofPhoto();
       renderRecapCard();
       renderRatingCard();
@@ -856,18 +906,18 @@
 
     if (hasPickup) {
       L.circleMarker([delivery.pickup_lat, delivery.pickup_lng], {
-        radius: 7, color: '#0F172A', fillColor: '#0F172A', fillOpacity: 1
+        radius: 7, color: '#16302A', fillColor: '#16302A', fillOpacity: 1
       }).addTo(map).bindPopup('Pickup');
     }
     if (hasDestination) {
       L.circleMarker([delivery.destination_lat, delivery.destination_lng], {
-        radius: 7, color: '#00C896', fillColor: '#00C896', fillOpacity: 1
+        radius: 7, color: '#16A34A', fillColor: '#16A34A', fillOpacity: 1
       }).addTo(map).bindPopup('Destination');
     }
 
     if (hasPickup && hasDestination) {
       L.polyline([[delivery.pickup_lat, delivery.pickup_lng], [delivery.destination_lat, delivery.destination_lng]], {
-        color: '#2454FF', weight: 3, dashArray: '6 8', opacity: 0.4
+        color: '#E8A33D', weight: 3, dashArray: '6 8', opacity: 0.4
       }).addTo(map);
       map.fitBounds([[delivery.pickup_lat, delivery.pickup_lng], [delivery.destination_lat, delivery.destination_lng]], { padding: [30, 30] });
     }
@@ -877,18 +927,24 @@
     }
   }
 
+  const vehicleIcons = {
+    bike: '<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M15 6a1 1 0 100-2 1 1 0 000 2zM12 17.5V14l-3-3 4-3 2 3h2"/></svg>',
+    car: '<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17H3v-6l2-5h9l4 5h1a2 2 0 012 2v4h-2"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="16.5" cy="17.5" r="2.5"/></svg>',
+    foot: '<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="4" r="2"/><path d="M12 6v5l-3 8M12 11l3 8M9 13h6"/></svg>'
+  };
+
   function riderDivIcon() {
     const rider = delivery.riders || {};
-    const content = rider.photo_url ? `<img src="${rider.photo_url}">` : '🏍️';
-    const vehicleEmoji = { bike: '🏍️', car: '🚗', foot: '🚶' }[rider.vehicle_type] || '🏍️';
-    const badge = rider.photo_url ? `<div class="vehicle-badge">${vehicleEmoji}</div>` : '';
+    const vehicleIcon = vehicleIcons[rider.vehicle_type] || vehicleIcons.bike;
+    const content = rider.photo_url ? `<img src="${rider.photo_url}">` : `<div style="width:60%;height:60%;">${vehicleIcon}</div>`;
+    const badge = rider.photo_url ? `<div class="vehicle-badge">${vehicleIcon.replace(/width:60%;height:60%;/, '')}</div>` : '';
 
     return L.divIcon({
       html: `
         <div class="rider-marker-wrap">
           <div class="rider-marker-ring"></div>
           <svg class="heading-arrow" id="rider-heading-arrow" viewBox="0 0 64 64">
-            <path d="M32 2 L40 20 L32 15 L24 20 Z" fill="#2454FF" opacity="0.85"/>
+            <path d="M32 2 L40 20 L32 15 L24 20 Z" fill="#16302A" opacity="0.85"/>
           </svg>
           <div class="rider-marker">${content}</div>
           ${badge}
