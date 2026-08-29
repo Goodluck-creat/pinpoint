@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Share your location — PinPoint</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --bg: #FAFBFC;
+    --surface: #FFFFFF;
+    --ink: #16302A;
+    --slate: #64748B;
+    --border: #E5E9F0;
+    --brand: #16302A;
+    --primary: #E8A33D;
+    --primary-dark: #D68A28;
+    --primary-tint: #FDF3E2;
+    --live: #16A34A;
+    --live-tint: #ECFDF3;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  h1, .display { font-family: 'Space Grotesk', sans-serif; }
+
+  .card {
+    background: var(--surface);
+    border-radius: 20px;
+    padding: 36px 28px;
+    max-width: 380px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 20px 60px -20px rgba(0,0,0,0.15);
+  }
+
+  .icon-circle {
+    width: 60px; height: 60px;
+    border-radius: 50%;
+    background: var(--primary-tint);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 18px;
+  }
+  .icon-circle svg { width: 28px; height: 28px; stroke: var(--primary-dark); }
+
+  h1 { font-size: 20px; margin-bottom: 8px; }
+  p { font-size: 14px; color: var(--slate); line-height: 1.5; margin-bottom: 24px; }
+
+  .share-btn {
+    width: 100%;
+    padding: 15px;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .share-btn:hover { background: var(--primary-dark); }
+  .share-btn:disabled { background: #C7CDD3; cursor: not-allowed; }
+
+  .status-msg {
+    margin-top: 16px;
+    font-size: 13px;
+    padding: 10px 14px;
+    border-radius: 9px;
+    display: none;
+  }
+  .status-msg.success { display: block; background: var(--live-tint); color: #067A3E; }
+  .status-msg.error { display: block; background: #FEF2F2; color: #B91C1C; }
+
+  .success-view { display: none; }
+  .success-view.visible { display: block; }
+  .success-view .icon-circle { background: var(--live-tint); }
+  .success-view .icon-circle svg { stroke: var(--live); }
+</style>
+</head>
+<body>
+
+<div class="card" id="request-view">
+  <div class="icon-circle">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C7.58 2 4 5.58 4 10c0 5.25 8 12 8 12s8-6.75 8-12c0-4.42-3.58-8-8-8z"/><circle cx="12" cy="10" r="3"/></svg>
+  </div>
+  <h1>Share your location</h1>
+  <p id="request-copy">A business is asking for your exact location to make sure your delivery reaches you correctly.</p>
+  <button class="share-btn" id="share-btn">Share my location</button>
+  <div class="status-msg" id="status-msg"></div>
+</div>
+
+<div class="card success-view" id="success-view">
+  <div class="icon-circle">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4M12 2a10 10 0 100 20 10 10 0 000-20z"/></svg>
+  </div>
+  <h1>Location shared!</h1>
+  <p>The business can now see your exact location and use it for your delivery. You can close this page.</p>
+</div>
+
+<script>
+  const SUPABASE_URL = 'https://wtxikghyylclqnhxfcvu.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_3XEbw4-lAFfIVgG-haVbGQ_Q2305QI7';
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const params = new URLSearchParams(window.location.search);
+  const phone = params.get('phone');
+  const businessName = params.get('business');
+
+  if (businessName) {
+    document.getElementById('request-copy').textContent =
+      `${businessName} is asking for your exact location to make sure your delivery reaches you correctly.`;
+  }
+
+  async function reverseGeocode(lat, lng) {
+    try {
+      const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      return data.display_name || null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  document.getElementById('share-btn').addEventListener('click', () => {
+    const btn = document.getElementById('share-btn');
+    const statusMsg = document.getElementById('status-msg');
+
+    if (!phone) {
+      statusMsg.textContent = 'This link is missing information — please ask the business to resend it.';
+      statusMsg.className = 'status-msg error';
+      return;
+    }
+
+    if (!navigator.geolocation) {
+      statusMsg.textContent = "Your browser doesn't support location sharing.";
+      statusMsg.className = 'status-msg error';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Getting your location…';
+    statusMsg.className = 'status-msg';
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        const address = await reverseGeocode(latitude, longitude);
+
+        const { error } = await supabaseClient.from('location_shares').insert({
+          phone: phone,
+          lat: latitude,
+          lng: longitude,
+          address: address
+        });
+
+        if (error) {
+          btn.disabled = false;
+          btn.textContent = 'Share my location';
+          statusMsg.textContent = 'Something went wrong — please try again.';
+          statusMsg.className = 'status-msg error';
+          return;
+        }
+
+        document.getElementById('request-view').style.display = 'none';
+        document.getElementById('success-view').classList.add('visible');
+      },
+      (err) => {
+        btn.disabled = false;
+        btn.textContent = 'Share my location';
+        statusMsg.textContent = 'Location access was denied. Please allow location access and try again.';
+        statusMsg.className = 'status-msg error';
+      },
+      { enableHighAccuracy: true, timeout: 15000 }
+    );
+  });
+</script>
+
+</body>
+</html>

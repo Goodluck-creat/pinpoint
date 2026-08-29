@@ -338,6 +338,40 @@
 
   /* ---- Location pickers ---- */
   .picker-hint { font-size: 12px; color: var(--slate-light); margin: -10px 0 10px; }
+
+  .location-btn-row { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+
+  .use-location-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--primary-dark);
+    background: var(--primary-tint);
+    border: none;
+    padding: 8px 12px;
+    border-radius: 100px;
+    cursor: pointer;
+    margin-bottom: 8px;
+  }
+  .use-location-btn svg { width: 13px; height: 13px; }
+  .use-location-btn:hover { background: #FBE6C2; }
+  .use-location-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .use-location-btn.secondary { color: #067A3E; background: var(--live-tint); }
+  .use-location-btn.secondary:hover { background: #D1FAE0; }
+
+  .location-status-msg {
+    font-size: 12px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    margin: -4px 0 10px;
+    display: none;
+  }
+  .location-status-msg.info { display: block; background: var(--primary-tint); color: var(--primary-dark); }
+  .location-status-msg.success { display: block; background: var(--live-tint); color: #067A3E; }
+  .location-status-msg.error { display: block; background: #FEF2F2; color: #B91C1C; }
+  .location-status-msg.duplicate { display: block; background: #FFF7E6; color: #B7791F; }
   .address-search-wrap { position: relative; }
   .address-suggestions {
     position: absolute; top: calc(100% + 2px); left: 0; right: 0; background: var(--surface);
@@ -662,9 +696,14 @@
               <input type="text" id="pickup_address" required placeholder="Search a saved address, or type + pin below" autocomplete="off">
               <div class="address-suggestions" id="pickup-suggestions"></div>
             </div>
-            <div class="picker-hint">Not listed? Tap the map to drop an exact pin — we'll save it for next time</div>
+            <button type="button" class="use-location-btn" id="use-location-pickup">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+              Use my current location
+            </button>
+            <div class="picker-hint">Or tap the map to drop an exact pin — we'll save it for next time</div>
             <div class="mini-map" id="pickup-map"></div>
             <input type="text" id="pickup_landmark" placeholder="Landmark (e.g. beside the blue kiosk)" style="margin-top:-6px;">
+            <div class="location-status-msg" id="pickup-location-msg"></div>
           </div>
 
           <div class="field">
@@ -673,9 +712,14 @@
               <input type="text" id="destination_address" required placeholder="Search a saved address, or type + pin below" autocomplete="off">
               <div class="address-suggestions" id="destination-suggestions"></div>
             </div>
-            <div class="picker-hint">Not listed? Tap the map to drop an exact pin — we'll save it for next time</div>
+            <button type="button" class="use-location-btn" id="use-location-destination">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+              Use my current location
+            </button>
+            <div class="picker-hint">Or tap the map to drop an exact pin — we'll save it for next time</div>
             <div class="mini-map" id="destination-map"></div>
             <input type="text" id="destination_landmark" placeholder="Landmark (e.g. opposite NNPC station)" style="margin-top:-6px;">
+            <div class="location-status-msg" id="destination-location-msg"></div>
           </div>
 
           <div class="distance-preview" id="distance-preview" style="display:none;">
@@ -1035,10 +1079,11 @@
     });
   }
 
-  function setupAddressField(inputId, suggestionsId, mapId, type) {
+  function setupAddressField(inputId, suggestionsId, mapId, type, msgId) {
     const input = document.getElementById(inputId);
     const suggestionsBox = document.getElementById(suggestionsId);
     let debounceTimer = null;
+    let geocodeDebounceTimer = null;
 
     const map = L.map(mapId, { zoomControl: false }).setView([6.2104, 7.0716], 11);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
@@ -1049,25 +1094,32 @@
       if (type === 'pickup') manualPickup = coords; else manualDestination = coords;
       updateDistancePreview();
     };
-
-    map.on('click', (e) => {
-      const { lat, lng } = e.latlng;
+    const dropPin = (lat, lng) => {
       if (marker) { marker.setLatLng([lat, lng]); }
       else {
         marker = L.marker([lat, lng], { icon: pinIcon(type), draggable: true }).addTo(map);
         marker.on('dragend', () => { const pos = marker.getLatLng(); setCoords({ lat: pos.lat, lng: pos.lng }); });
       }
+      map.setView([lat, lng], 15);
       setCoords({ lat, lng });
+    };
+
+    map.on('click', (e) => {
+      dropPin(e.latlng.lat, e.latlng.lng);
+      if (msgId) showLocationMsg(msgId, 'Pin placed manually.', 'success');
     });
 
     input.addEventListener('input', () => {
       clearTimeout(debounceTimer);
+      clearTimeout(geocodeDebounceTimer);
       const term = input.value.trim();
       if (type === 'pickup') manualPickup = null; else manualDestination = null;
       updateDistancePreview();
+      if (msgId) document.getElementById(msgId).className = 'location-status-msg';
 
       if (term.length < 2) { suggestionsBox.classList.remove('visible'); return; }
 
+      // Fast lookup: search our own saved address book first (instant, most accurate for repeat spots)
       debounceTimer = setTimeout(async () => {
         const { data } = await supabaseClient.from('locations').select('id, name, lat, lng').ilike('name', `%${term}%`).limit(6);
         if (!data || data.length === 0) { suggestionsBox.classList.remove('visible'); return; }
@@ -1081,21 +1133,40 @@
 
         suggestionsBox.querySelectorAll('.address-suggestion-item').forEach(item => {
           item.addEventListener('click', () => {
+            clearTimeout(geocodeDebounceTimer); // a saved match was picked — skip the auto-geocode fallback
             const lat = parseFloat(item.dataset.lat);
             const lng = parseFloat(item.dataset.lng);
             input.value = item.dataset.name;
             suggestionsBox.classList.remove('visible');
-
-            if (marker) { marker.setLatLng([lat, lng]); }
-            else {
-              marker = L.marker([lat, lng], { icon: pinIcon(type), draggable: true }).addTo(map);
-              marker.on('dragend', () => { const pos = marker.getLatLng(); setCoords({ lat: pos.lat, lng: pos.lng }); });
-            }
-            map.setView([lat, lng], 15);
-            setCoords({ lat, lng });
+            dropPin(lat, lng);
+            if (msgId) showLocationMsg(msgId, `Using saved address: "${item.dataset.name}"`, 'success');
           });
         });
       }, 250);
+
+      // Slower fallback: if the business keeps typing a place name that isn't in our saved
+      // list (e.g. "Amawbia bypass"), automatically try to resolve it to real coordinates
+      // once they pause typing — no need to submit the form first to find out if it worked.
+      geocodeDebounceTimer = setTimeout(async () => {
+        const currentCoords = type === 'pickup' ? manualPickup : manualDestination;
+        if (currentCoords) return; // already resolved via a saved-address click
+        if (term.length < 4) return;
+
+        if (msgId) showLocationMsg(msgId, 'Looking up that location…', 'info');
+        const coords = await geocodeAddress(term);
+
+        // Only apply if the input hasn't changed again while we were waiting, and nothing else set it meanwhile
+        if (input.value.trim() !== term) return;
+        const stillUnset = type === 'pickup' ? !manualPickup : !manualDestination;
+        if (!stillUnset) return;
+
+        if (coords) {
+          dropPin(coords.lat, coords.lng);
+          if (msgId) showLocationMsg(msgId, `Found it — pin placed automatically. Drag it on the map if it's slightly off.`, 'success');
+        } else {
+          if (msgId) showLocationMsg(msgId, "Couldn't automatically find that place — please tap the map to pin it exactly.", 'error');
+        }
+      }, 1100);
     });
 
     document.addEventListener('click', (e) => {
@@ -1103,8 +1174,8 @@
     });
   }
 
-  setupAddressField('pickup_address', 'pickup-suggestions', 'pickup-map', 'pickup');
-  setupAddressField('destination_address', 'destination-suggestions', 'destination-map', 'destination');
+  setupAddressField('pickup_address', 'pickup-suggestions', 'pickup-map', 'pickup', 'pickup-location-msg');
+  setupAddressField('destination_address', 'destination-suggestions', 'destination-map', 'destination', 'destination-location-msg');
 
   async function saveLocationIfNew(name, lat, lng) {
     if (!name || !lat || !lng) return;
@@ -1116,6 +1187,75 @@
       await supabaseClient.from('locations').insert({ name, lat, lng });
     } catch (e) { console.warn('Could not save location:', e); }
   }
+
+  async function reverseGeocode(lat, lng) {
+    try {
+      const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      return data.display_name || null;
+    } catch (e) { return null; }
+  }
+
+  // ---------- "Use my current location" ----------
+  function setupUseCurrentLocation(buttonId, type, addressInputId, msgId) {
+    const btn = document.getElementById(buttonId);
+    btn.addEventListener('click', () => {
+      if (!navigator.geolocation) {
+        showLocationMsg(msgId, "Your browser doesn't support location access.", 'error');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Getting your location…';
+      showLocationMsg(msgId, 'Finding your position…', 'info');
+
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+
+          // Check if this spot is already saved
+          const { data: nearby } = await supabaseClient.from('locations').select('id, name, lat, lng')
+            .gte('lat', latitude - 0.003).lte('lat', latitude + 0.003)
+            .gte('lng', longitude - 0.003).lte('lng', longitude + 0.003);
+          const match = (nearby || []).find(loc => haversineKm(latitude, longitude, loc.lat, loc.lng) < 0.1);
+
+          if (type === 'pickup') { manualPickup = { lat: latitude, lng: longitude }; }
+          else { manualDestination = { lat: latitude, lng: longitude }; }
+          updateDistancePreview();
+
+          btn.disabled = false;
+          btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>Use my current location`;
+
+          if (match) {
+            document.getElementById(addressInputId).value = match.name;
+            showLocationMsg(msgId, `This matches a saved address: "${match.name}"`, 'duplicate');
+          } else {
+            const address = await reverseGeocode(latitude, longitude);
+            document.getElementById(addressInputId).value = address || 'My current location';
+            showLocationMsg(msgId, 'Got your location — this will be saved as a new address once you create the delivery.', 'success');
+          }
+        },
+        () => {
+          btn.disabled = false;
+          btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>Use my current location`;
+          showLocationMsg(msgId, 'Location access was denied. Please allow location access and try again.', 'error');
+        },
+        { enableHighAccuracy: true, timeout: 15000 }
+      );
+    });
+  }
+
+  function showLocationMsg(msgId, text, type) {
+    const el = document.getElementById(msgId);
+    el.textContent = text;
+    el.className = `location-status-msg ${type}`;
+  }
+
+  setupUseCurrentLocation('use-location-pickup', 'pickup', 'pickup_address', 'pickup-location-msg');
+  setupUseCurrentLocation('use-location-destination', 'destination', 'destination_address', 'destination-location-msg');
+
+  // ---------- "Request customer's location" ----------
 
   async function loadRiders() {
     if (!currentBusiness) return;
@@ -1299,6 +1439,17 @@
       ]);
       pickupCoords = pickupCoords || geoPickup;
       destinationCoords = destinationCoords || geoDestination;
+    }
+
+    // Hard stop: never create a delivery with missing coordinates — this is what
+    // breaks live tracking later. Force the business to pin the exact spot instead.
+    if (!pickupCoords || !destinationCoords) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Create delivery';
+      const missing = !pickupCoords && !destinationCoords ? 'pickup and destination addresses' : (!pickupCoords ? 'pickup address' : 'destination address');
+      formMsg.textContent = `We couldn't locate the ${missing} automatically. Please tap the map above to pin the exact spot, then try again.`;
+      formMsg.className = 'form-msg error';
+      return;
     }
 
     submitBtn.textContent = 'Creating…';
@@ -1521,8 +1672,21 @@
 
   let trackVizRiderPos = null; // { lat, lng, heading }
   let currentTrackDelivery = null;
+  let trackVizRoutePoints = null;
 
   const TRACK_VIZ_W = 700, TRACK_VIZ_H = 380, TRACK_VIZ_PAD = 60;
+
+  async function fetchRoadRouteBiz(lat1, lng1, lat2, lng2) {
+    try {
+      const url = `https://router.project-osrm.org/route/v1/driving/${lng1},${lat1};${lng2},${lat2}?overview=full&geometries=geojson`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.routes && data.routes[0]) {
+        return data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
+      }
+    } catch (e) { console.warn('Road route fetch failed:', e); }
+    return null;
+  }
 
   function trackVizProject(lat, lng, bounds) {
     const { minLat, maxLat, minLng, maxLng } = bounds;
@@ -1538,6 +1702,7 @@
     if (delivery.pickup_lat && delivery.pickup_lng) points.push([delivery.pickup_lat, delivery.pickup_lng]);
     if (delivery.destination_lat && delivery.destination_lng) points.push([delivery.destination_lat, delivery.destination_lng]);
     if (trackVizRiderPos) points.push([trackVizRiderPos.lat, trackVizRiderPos.lng]);
+    if (trackVizRoutePoints) points.push(...trackVizRoutePoints);
     if (points.length === 0) return { minLat: 6.1, maxLat: 6.3, minLng: 7.0, maxLng: 7.2 };
 
     let minLat = Math.min(...points.map(p => p[0]));
@@ -1565,10 +1730,17 @@
       const d = trackVizProject(delivery.destination_lat, delivery.destination_lng, bounds);
       destEl = `<g><circle cx="${d.x}" cy="${d.y}" r="7" fill="#16A34A"/><text x="${d.x}" y="${d.y - 14}" text-anchor="middle" style="font-size:10px;font-weight:600;font-family:Inter,sans-serif;" fill="#16A34A">Destination</text></g>`;
     }
-    if (hasPickup && hasDestination) {
+
+    if (trackVizRoutePoints && trackVizRoutePoints.length > 1) {
+      const pathD = trackVizRoutePoints.map((pt, i) => {
+        const { x, y } = trackVizProject(pt[0], pt[1], bounds);
+        return `${i === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
+      }).join(' ');
+      routeLine = `<path d="${pathD}" fill="none" stroke="#E8A33D" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.6"/>`;
+    } else if (hasPickup && hasDestination) {
       const p1 = trackVizProject(delivery.pickup_lat, delivery.pickup_lng, bounds);
       const p2 = trackVizProject(delivery.destination_lat, delivery.destination_lng, bounds);
-      routeLine = `<line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="#E8A33D" stroke-width="2.5" stroke-dasharray="6 7" opacity="0.55"/>`;
+      routeLine = `<line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="#E8A33D" stroke-width="2.5" stroke-dasharray="6 7" opacity="0.5"/>`;
     }
 
     if (trackVizRiderPos) {
@@ -1598,16 +1770,29 @@
       }
     }
 
-    container.innerHTML = `<svg viewBox="0 0 ${TRACK_VIZ_W} ${TRACK_VIZ_H}" style="width:100%;height:100%;display:block;" xmlns="http://www.w3.org/2000/svg">${dots.join('')}${routeLine}${pickupEl}${destEl}${riderEl}</svg>`;
+    let overlayNote = '';
+    if (!hasPickup && !hasDestination) {
+      overlayNote = `<text x="${TRACK_VIZ_W/2}" y="${TRACK_VIZ_H/2}" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" fill="#94A3B8">Location details aren't set for this delivery yet</text>`;
+    } else if (delivery.tracking_approved && !trackVizRiderPos) {
+      overlayNote = `<text x="${TRACK_VIZ_W/2}" y="${TRACK_VIZ_H - 24}" text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#94A3B8">Waiting for the rider's first location update…</text>`;
+    }
+
+    container.innerHTML = `<svg viewBox="0 0 ${TRACK_VIZ_W} ${TRACK_VIZ_H}" style="width:100%;height:100%;display:block;" xmlns="http://www.w3.org/2000/svg">${dots.join('')}${routeLine}${pickupEl}${destEl}${riderEl}${overlayNote}</svg>`;
   }
 
-  function initTrackMap(delivery) {
+  async function initTrackMap(delivery) {
     currentTrackDelivery = delivery;
     trackVizRiderPos = null;
+    trackVizRoutePoints = null;
     if (trackChannel) { supabaseClient.removeChannel(trackChannel); trackChannel = null; }
     trackOffRouteStreak = 0;
 
     renderTrackVisualizer(delivery);
+
+    if (delivery.pickup_lat && delivery.destination_lat) {
+      const route = await fetchRoadRouteBiz(delivery.pickup_lat, delivery.pickup_lng, delivery.destination_lat, delivery.destination_lng);
+      if (route) { trackVizRoutePoints = route; renderTrackVisualizer(delivery); }
+    }
 
     if (delivery.tracking_approved) startTrackRealtime(delivery);
   }
