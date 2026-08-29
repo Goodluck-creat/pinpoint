@@ -6,6 +6,8 @@
 <title>PinPoint — Track your delivery</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root {
@@ -167,26 +169,7 @@
     border-radius: var(--radius);
     border: 1px solid var(--border);
     margin-bottom: 14px;
-    background: var(--surface);
-    position: relative;
-    overflow: hidden;
-  }
-
-  #map svg { width: 100%; height: 100%; display: block; }
-
-  .viz-pin-label {
-    font-family: 'Inter', sans-serif;
-    font-size: 10px;
-    font-weight: 600;
-  }
-
-  .viz-rider-group { transition: transform 0.6s ease-out; }
-  .viz-heading-arrow { transition: transform 0.4s ease; transform-origin: center; }
-  .viz-ring { animation: viz-pulse 1.8s infinite ease-out; transform-origin: center; }
-
-  @keyframes viz-pulse {
-    0% { transform: scale(0.6); opacity: 0.7; }
-    100% { transform: scale(1.6); opacity: 0; }
+    background: #E5E9F0;
   }
 
   .rider-marker-wrap {
@@ -777,7 +760,7 @@
         document.querySelectorAll('.customer-tab-panel').forEach(p => p.classList.remove('active'));
         btn.classList.add('active');
         document.getElementById(btn.dataset.ctab).classList.add('active');
-        if (delivery) renderVisualizer();
+        if (map) setTimeout(() => map.invalidateSize(), 150);
       });
     });
 
@@ -1036,25 +1019,24 @@
 
   // ---------- Map ----------
   const vehicleIcons = {
-    bike: '<path d="M5.5 17.5a3.5 3.5 0 100-7 3.5 3.5 0 000 7zM18.5 17.5a3.5 3.5 0 100-7 3.5 3.5 0 000 7zM15 6a1 1 0 100-2 1 1 0 000 2zM12 17.5V14l-3-3 4-3 2 3h2" stroke="white" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
-    car: '<path d="M5 17H3v-6l2-5h9l4 5h1a2 2 0 012 2v4h-2M7.5 17.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM16.5 17.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" stroke="white" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
-    foot: '<circle cx="12" cy="4" r="2" fill="white"/><path d="M12 6v5l-3 8M12 11l3 8M9 13h6" stroke="white" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'
+    bike: '<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M15 6a1 1 0 100-2 1 1 0 000 2zM12 17.5V14l-3-3 4-3 2 3h2"/></svg>',
+    car: '<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17H3v-6l2-5h9l4 5h1a2 2 0 012 2v4h-2"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="16.5" cy="17.5" r="2.5"/></svg>',
+    foot: '<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="4" r="2"/><path d="M12 6v5l-3 8M12 11l3 8M9 13h6"/></svg>'
   };
 
-  // ---------- Custom position visualizer (no external map library) ----------
-  const VIZ_W = 600, VIZ_H = 320, VIZ_PAD = 56;
-  let vizRiderPos = null; // { lat, lng, heading } — last known rider position
-  let vizRoutePoints = null; // [[lat,lng], ...] real road-following path from OSRM, if fetched successfully
+  // ---------- Real live map (Leaflet + OpenStreetMap) ----------
+  let map = null;
+  let riderMarker = null;
 
   // Fetches the actual road-following path between two points using OSRM's free
-  // public routing service — no API key, no map tiles, just route geometry.
+  // public routing service — no API key needed, just route geometry.
   async function fetchRoadRoute(lat1, lng1, lat2, lng2) {
     try {
       const url = `https://router.project-osrm.org/route/v1/driving/${lng1},${lat1};${lng2},${lat2}?overview=full&geometries=geojson`;
       const res = await fetch(url);
       const data = await res.json();
       if (data.routes && data.routes[0]) {
-        return data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]); // OSRM gives [lng,lat], we want [lat,lng]
+        return data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
       }
     } catch (e) {
       console.warn('Road route fetch failed, falling back to straight line:', e);
@@ -1062,137 +1044,70 @@
     return null;
   }
 
-  function vizProject(lat, lng, bounds) {
-    const { minLat, maxLat, minLng, maxLng } = bounds;
-    const latSpan = Math.max(maxLat - minLat, 0.0005);
-    const lngSpan = Math.max(maxLng - minLng, 0.0005);
-    const x = VIZ_PAD + ((lng - minLng) / lngSpan) * (VIZ_W - VIZ_PAD * 2);
-    const y = VIZ_PAD + ((maxLat - lat) / latSpan) * (VIZ_H - VIZ_PAD * 2); // flip: higher lat = smaller y
-    return { x, y };
-  }
-
-  function vizComputeBounds() {
-    const points = [];
-    if (delivery.pickup_lat && delivery.pickup_lng) points.push([delivery.pickup_lat, delivery.pickup_lng]);
-    if (delivery.destination_lat && delivery.destination_lng) points.push([delivery.destination_lat, delivery.destination_lng]);
-    if (vizRiderPos) points.push([vizRiderPos.lat, vizRiderPos.lng]);
-    if (vizRoutePoints) points.push(...vizRoutePoints);
-
-    if (points.length === 0) return { minLat: 6.1, maxLat: 6.3, minLng: 7.0, maxLng: 7.2 };
-
-    let minLat = Math.min(...points.map(p => p[0]));
-    let maxLat = Math.max(...points.map(p => p[0]));
-    let minLng = Math.min(...points.map(p => p[1]));
-    let maxLng = Math.max(...points.map(p => p[1]));
-
-    // Add ~18% padding so points never sit right at the edge
-    const latPad = Math.max((maxLat - minLat) * 0.18, 0.0015);
-    const lngPad = Math.max((maxLng - minLng) * 0.18, 0.0015);
-    return { minLat: minLat - latPad, maxLat: maxLat + latPad, minLng: minLng - lngPad, maxLng: maxLng + lngPad };
-  }
-
-  function renderVisualizer() {
-    const container = document.getElementById('map');
+  async function initMap() {
     const hasPickup = delivery.pickup_lat && delivery.pickup_lng;
     const hasDestination = delivery.destination_lat && delivery.destination_lng;
-    const bounds = vizComputeBounds();
+    const centerLat = hasDestination ? delivery.destination_lat : (hasPickup ? delivery.pickup_lat : 6.2104);
+    const centerLng = hasDestination ? delivery.destination_lng : (hasPickup ? delivery.pickup_lng : 7.0716);
 
-    let routeLine = '';
-    let pickupEl = '', destEl = '';
+    map = L.map('map').setView([centerLat, centerLng], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
 
     if (hasPickup) {
-      const p = vizProject(delivery.pickup_lat, delivery.pickup_lng, bounds);
-      pickupEl = `
-        <g>
-          <circle cx="${p.x}" cy="${p.y}" r="7" fill="#16302A"/>
-          <text x="${p.x}" y="${p.y - 14}" text-anchor="middle" class="viz-pin-label" fill="#16302A">Pickup</text>
-        </g>`;
+      L.circleMarker([delivery.pickup_lat, delivery.pickup_lng], {
+        radius: 7, color: '#16302A', fillColor: '#16302A', fillOpacity: 1
+      }).addTo(map).bindPopup('Pickup');
     }
     if (hasDestination) {
-      const d = vizProject(delivery.destination_lat, delivery.destination_lng, bounds);
-      destEl = `
-        <g>
-          <circle cx="${d.x}" cy="${d.y}" r="7" fill="#16A34A"/>
-          <text x="${d.x}" y="${d.y - 14}" text-anchor="middle" class="viz-pin-label" fill="#16A34A">Destination</text>
-        </g>`;
+      L.circleMarker([delivery.destination_lat, delivery.destination_lng], {
+        radius: 7, color: '#16A34A', fillColor: '#16A34A', fillOpacity: 1
+      }).addTo(map).bindPopup('Destination');
     }
 
-    if (vizRoutePoints && vizRoutePoints.length > 1) {
-      // Real road-following path
-      const pathD = vizRoutePoints.map((pt, i) => {
-        const { x, y } = vizProject(pt[0], pt[1], bounds);
-        return `${i === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
-      }).join(' ');
-      routeLine = `<path d="${pathD}" fill="none" stroke="#E8A33D" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.6"/>`;
-    } else if (hasPickup && hasDestination) {
-      // Fallback: straight dashed line while the real route is still loading (or unavailable)
-      const p1 = vizProject(delivery.pickup_lat, delivery.pickup_lng, bounds);
-      const p2 = vizProject(delivery.destination_lat, delivery.destination_lng, bounds);
-      routeLine = `<line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="#E8A33D" stroke-width="2.5" stroke-dasharray="6 7" opacity="0.5"/>`;
-    }
+    if (hasPickup && hasDestination) {
+      // Draw a straight line immediately, then replace it with the real road-following
+      // route once OSRM responds, so the map never sits empty while waiting.
+      const straightLine = L.polyline(
+        [[delivery.pickup_lat, delivery.pickup_lng], [delivery.destination_lat, delivery.destination_lng]],
+        { color: '#E8A33D', weight: 3, dashArray: '6 8', opacity: 0.5 }
+      ).addTo(map);
+      map.fitBounds([[delivery.pickup_lat, delivery.pickup_lng], [delivery.destination_lat, delivery.destination_lng]], { padding: [30, 30] });
 
-    let riderEl = '';
-    if (vizRiderPos) {
-      const rider = delivery.riders || {};
-      const r = vizProject(vizRiderPos.lat, vizRiderPos.lng, bounds);
-      const vIcon = vehicleIcons[rider.vehicle_type] || vehicleIcons.bike;
-      const heading = vizRiderPos.heading || 0;
-      const photoClip = rider.photo_url ? `
-        <defs><clipPath id="riderPhotoClip"><circle cx="0" cy="0" r="18"/></clipPath></defs>
-        <image href="${rider.photo_url}" x="-18" y="-18" width="36" height="36" clip-path="url(#riderPhotoClip)"/>` :
-        `<circle r="18" fill="#16302A"/><g transform="scale(1.1)">${vIcon}</g>`;
-
-      riderEl = `
-        <g class="viz-rider-group" transform="translate(${r.x}, ${r.y})">
-          <circle class="viz-ring" r="18" fill="#E8A33D" opacity="0.35"/>
-          <g class="viz-heading-arrow" transform="rotate(${heading})">
-            <path d="M0 -30 L6 -20 L0 -24 L-6 -20 Z" fill="#E8A33D"/>
-          </g>
-          <circle r="19" fill="none" stroke="#E8A33D" stroke-width="3"/>
-          ${photoClip}
-        </g>`;
-    }
-
-    // Subtle dot-grid texture so it reads as "map-like" without pretending to show real streets
-    const dots = [];
-    for (let gx = 20; gx < VIZ_W; gx += 28) {
-      for (let gy = 20; gy < VIZ_H; gy += 28) {
-        dots.push(`<circle cx="${gx}" cy="${gy}" r="1" fill="#16302A" opacity="0.05"/>`);
-      }
-    }
-
-    // Friendly overlay instead of a bare-looking canvas when there's genuinely nothing to show yet
-    let overlayNote = '';
-    if (!hasPickup && !hasDestination) {
-      overlayNote = `<text x="${VIZ_W/2}" y="${VIZ_H/2}" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" fill="#94A3B8">Location details aren't set for this delivery yet</text>`;
-    } else if (delivery.tracking_approved && !vizRiderPos) {
-      overlayNote = `<text x="${VIZ_W/2}" y="${VIZ_H - 24}" text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#94A3B8">Waiting for the rider's first location update…</text>`;
-    }
-
-    container.innerHTML = `
-      <svg viewBox="0 0 ${VIZ_W} ${VIZ_H}" xmlns="http://www.w3.org/2000/svg">
-        ${dots.join('')}
-        ${routeLine}
-        ${pickupEl}
-        ${destEl}
-        ${riderEl}
-        ${overlayNote}
-      </svg>`;
-  }
-
-  async function initMap() {
-    renderVisualizer();
-
-    // Fetch the real road-following route in the background, then re-render with it
-    if (delivery.pickup_lat && delivery.destination_lat) {
       const route = await fetchRoadRoute(delivery.pickup_lat, delivery.pickup_lng, delivery.destination_lat, delivery.destination_lng);
       if (route) {
-        vizRoutePoints = route;
-        renderVisualizer();
+        map.removeLayer(straightLine);
+        const roadLine = L.polyline(route, { color: '#E8A33D', weight: 4, opacity: 0.65 }).addTo(map);
+        map.fitBounds(roadLine.getBounds(), { padding: [30, 30] });
       }
     }
 
-    if (delivery.tracking_approved) startLiveTracking();
+    if (delivery.tracking_approved) {
+      startLiveTracking();
+    }
+  }
+
+  function riderDivIcon() {
+    const rider = delivery.riders || {};
+    const vehicleIcon = vehicleIcons[rider.vehicle_type] || vehicleIcons.bike;
+    const content = rider.photo_url ? `<img src="${rider.photo_url}">` : `<div style="width:60%;height:60%;">${vehicleIcon}</div>`;
+    const badge = rider.photo_url ? `<div class="vehicle-badge">${vehicleIcon}</div>` : '';
+
+    return L.divIcon({
+      html: `
+        <div class="rider-marker-wrap">
+          <div class="rider-marker-ring"></div>
+          <svg class="heading-arrow" id="rider-heading-arrow" viewBox="0 0 64 64">
+            <path d="M32 2 L40 20 L32 15 L24 20 Z" fill="#E8A33D" opacity="0.9"/>
+          </svg>
+          <div class="rider-marker">${content}</div>
+          ${badge}
+        </div>`,
+      className: '',
+      iconSize: [64, 64],
+      iconAnchor: [32, 32]
+    });
   }
 
   function updateStats(lat, lng, speedMs) {
@@ -1223,6 +1138,13 @@
   }
 
   function startLiveTracking() {
+    if (!map) return;
+    if (!riderMarker) {
+      const startLat = delivery.pickup_lat || 6.2104;
+      const startLng = delivery.pickup_lng || 7.0716;
+      riderMarker = L.marker([startLat, startLng], { icon: riderDivIcon() }).addTo(map);
+    }
+
     fetchLatestPing();
     if (realtimeChannel) return; // already subscribed
 
@@ -1246,10 +1168,22 @@
   }
 
   function applyPing(ping) {
-    vizRiderPos = { lat: ping.lat, lng: ping.lng, heading: ping.heading };
-    renderVisualizer();
+    if (!riderMarker) return;
+    riderMarker.setLatLng([ping.lat, ping.lng]);
+    map.panTo([ping.lat, ping.lng]);
     updateStats(ping.lat, ping.lng, ping.speed);
     checkWrongDirection(ping.lat, ping.lng);
+
+    if (ping.heading !== null && ping.heading !== undefined) {
+      const markerEl = riderMarker.getElement();
+      if (markerEl) {
+        const arrow = markerEl.querySelector('#rider-heading-arrow');
+        if (arrow) {
+          arrow.style.transform = `rotate(${ping.heading}deg)`;
+          arrow.style.transformOrigin = '32px 32px';
+        }
+      }
+    }
   }
 
   loadDelivery();

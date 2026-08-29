@@ -1754,11 +1754,18 @@
     initTrackMap(delivery);
   }
 
-  let trackVizRiderPos = null; // { lat, lng, heading }
+  let trackMap = null;
+  let trackMarker = null;
   let currentTrackDelivery = null;
-  let trackVizRoutePoints = null;
 
-  const TRACK_VIZ_W = 700, TRACK_VIZ_H = 380, TRACK_VIZ_PAD = 60;
+  function trackVehicleIconHtml(vehicleType) {
+    const icons = {
+      bike: '<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M15 6a1 1 0 100-2 1 1 0 000 2zM12 17.5V14l-3-3 4-3 2 3h2"/></svg>',
+      car: '<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17H3v-6l2-5h9l4 5h1a2 2 0 012 2v4h-2"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="16.5" cy="17.5" r="2.5"/></svg>',
+      foot: '<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="4" r="2"/><path d="M12 6v5l-3 8M12 11l3 8M9 13h6"/></svg>'
+    };
+    return icons[vehicleType] || icons.bike;
+  }
 
   async function fetchRoadRouteBiz(lat1, lng1, lat2, lng2) {
     try {
@@ -1772,116 +1779,56 @@
     return null;
   }
 
-  function trackVizProject(lat, lng, bounds) {
-    const { minLat, maxLat, minLng, maxLng } = bounds;
-    const latSpan = Math.max(maxLat - minLat, 0.0005);
-    const lngSpan = Math.max(maxLng - minLng, 0.0005);
-    const x = TRACK_VIZ_PAD + ((lng - minLng) / lngSpan) * (TRACK_VIZ_W - TRACK_VIZ_PAD * 2);
-    const y = TRACK_VIZ_PAD + ((maxLat - lat) / latSpan) * (TRACK_VIZ_H - TRACK_VIZ_PAD * 2);
-    return { x, y };
-  }
+  async function initTrackMap(delivery) {
+    currentTrackDelivery = delivery;
+    trackOffRouteStreak = 0;
 
-  function trackVizComputeBounds(delivery) {
-    const points = [];
-    if (delivery.pickup_lat && delivery.pickup_lng) points.push([delivery.pickup_lat, delivery.pickup_lng]);
-    if (delivery.destination_lat && delivery.destination_lng) points.push([delivery.destination_lat, delivery.destination_lng]);
-    if (trackVizRiderPos) points.push([trackVizRiderPos.lat, trackVizRiderPos.lng]);
-    if (trackVizRoutePoints) points.push(...trackVizRoutePoints);
-    if (points.length === 0) return { minLat: 6.1, maxLat: 6.3, minLng: 7.0, maxLng: 7.2 };
-
-    let minLat = Math.min(...points.map(p => p[0]));
-    let maxLat = Math.max(...points.map(p => p[0]));
-    let minLng = Math.min(...points.map(p => p[1]));
-    let maxLng = Math.max(...points.map(p => p[1]));
-    const latPad = Math.max((maxLat - minLat) * 0.18, 0.0015);
-    const lngPad = Math.max((maxLng - minLng) * 0.18, 0.0015);
-    return { minLat: minLat - latPad, maxLat: maxLat + latPad, minLng: minLng - lngPad, maxLng: maxLng + lngPad };
-  }
-
-  function renderTrackVisualizer(delivery) {
     const container = document.getElementById('track-map');
+    container.innerHTML = '';
+    if (trackMap) { trackMap.remove(); trackMap = null; trackMarker = null; }
+
     const hasPickup = delivery.pickup_lat && delivery.pickup_lng;
     const hasDestination = delivery.destination_lat && delivery.destination_lng;
-    const bounds = trackVizComputeBounds(delivery);
+    const centerLat = hasDestination ? delivery.destination_lat : (hasPickup ? delivery.pickup_lat : 6.2104);
+    const centerLng = hasDestination ? delivery.destination_lng : (hasPickup ? delivery.pickup_lng : 7.0716);
 
-    let routeLine = '', pickupEl = '', destEl = '', riderEl = '';
+    trackMap = L.map('track-map').setView([centerLat, centerLng], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' }).addTo(trackMap);
 
-    if (hasPickup) {
-      const p = trackVizProject(delivery.pickup_lat, delivery.pickup_lng, bounds);
-      pickupEl = `<g><circle cx="${p.x}" cy="${p.y}" r="7" fill="#16302A"/><text x="${p.x}" y="${p.y - 14}" text-anchor="middle" style="font-size:10px;font-weight:600;font-family:Inter,sans-serif;" fill="#16302A">Pickup</text></g>`;
-    }
-    if (hasDestination) {
-      const d = trackVizProject(delivery.destination_lat, delivery.destination_lng, bounds);
-      destEl = `<g><circle cx="${d.x}" cy="${d.y}" r="7" fill="#16A34A"/><text x="${d.x}" y="${d.y - 14}" text-anchor="middle" style="font-size:10px;font-weight:600;font-family:Inter,sans-serif;" fill="#16A34A">Destination</text></g>`;
-    }
+    if (hasPickup) L.circleMarker([delivery.pickup_lat, delivery.pickup_lng], { radius: 7, color: '#16302A', fillColor: '#16302A', fillOpacity: 1 }).addTo(trackMap).bindPopup('Pickup');
+    if (hasDestination) L.circleMarker([delivery.destination_lat, delivery.destination_lng], { radius: 7, color: '#16A34A', fillColor: '#16A34A', fillOpacity: 1 }).addTo(trackMap).bindPopup('Destination');
 
-    if (trackVizRoutePoints && trackVizRoutePoints.length > 1) {
-      const pathD = trackVizRoutePoints.map((pt, i) => {
-        const { x, y } = trackVizProject(pt[0], pt[1], bounds);
-        return `${i === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
-      }).join(' ');
-      routeLine = `<path d="${pathD}" fill="none" stroke="#E8A33D" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.6"/>`;
-    } else if (hasPickup && hasDestination) {
-      const p1 = trackVizProject(delivery.pickup_lat, delivery.pickup_lng, bounds);
-      const p2 = trackVizProject(delivery.destination_lat, delivery.destination_lng, bounds);
-      routeLine = `<line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="#E8A33D" stroke-width="2.5" stroke-dasharray="6 7" opacity="0.5"/>`;
-    }
+    if (hasPickup && hasDestination) {
+      const straightLine = L.polyline(
+        [[delivery.pickup_lat, delivery.pickup_lng], [delivery.destination_lat, delivery.destination_lng]],
+        { color: '#E8A33D', weight: 3, dashArray: '6 8', opacity: 0.5 }
+      ).addTo(trackMap);
+      trackMap.fitBounds([[delivery.pickup_lat, delivery.pickup_lng], [delivery.destination_lat, delivery.destination_lng]], { padding: [30, 30] });
 
-    if (trackVizRiderPos) {
-      const rider = delivery.riders || {};
-      const r = trackVizProject(trackVizRiderPos.lat, trackVizRiderPos.lng, bounds);
-      const vIcon = trackVehicleIcon(rider.vehicle_type).replace(/<svg[^>]*>|<\/svg>/g, '');
-      const heading = trackVizRiderPos.heading || 0;
-      const photoOrIcon = rider.photo_url
-        ? `<defs><clipPath id="trackPhotoClip"><circle cx="0" cy="0" r="18"/></clipPath></defs><image href="${rider.photo_url}" x="-18" y="-18" width="36" height="36" clip-path="url(#trackPhotoClip)"/>`
-        : `<circle r="18" fill="#16302A"/><g transform="scale(1.1)">${vIcon}</g>`;
-
-      riderEl = `
-        <g style="transition: transform 0.6s ease-out;" transform="translate(${r.x}, ${r.y})">
-          <circle r="18" fill="#E8A33D" opacity="0.35"><animate attributeName="r" values="12;22;12" dur="1.8s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.5;0;0.5" dur="1.8s" repeatCount="indefinite"/></circle>
-          <g transform="rotate(${heading})" style="transition: transform 0.4s ease;">
-            <path d="M0 -30 L6 -20 L0 -24 L-6 -20 Z" fill="#E8A33D"/>
-          </g>
-          <circle r="19" fill="none" stroke="#E8A33D" stroke-width="3"/>
-          ${photoOrIcon}
-        </g>`;
-    }
-
-    const dots = [];
-    for (let gx = 20; gx < TRACK_VIZ_W; gx += 30) {
-      for (let gy = 20; gy < TRACK_VIZ_H; gy += 30) {
-        dots.push(`<circle cx="${gx}" cy="${gy}" r="1" fill="#16302A" opacity="0.05"/>`);
+      const route = await fetchRoadRouteBiz(delivery.pickup_lat, delivery.pickup_lng, delivery.destination_lat, delivery.destination_lng);
+      if (route) {
+        trackMap.removeLayer(straightLine);
+        const roadLine = L.polyline(route, { color: '#E8A33D', weight: 4, opacity: 0.65 }).addTo(trackMap);
+        trackMap.fitBounds(roadLine.getBounds(), { padding: [30, 30] });
       }
     }
 
-    let overlayNote = '';
-    if (!hasPickup && !hasDestination) {
-      overlayNote = `<text x="${TRACK_VIZ_W/2}" y="${TRACK_VIZ_H/2}" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" fill="#94A3B8">Location details aren't set for this delivery yet</text>`;
-    } else if (delivery.tracking_approved && !trackVizRiderPos) {
-      overlayNote = `<text x="${TRACK_VIZ_W/2}" y="${TRACK_VIZ_H - 24}" text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#94A3B8">Waiting for the rider's first location update…</text>`;
-    }
-
-    container.innerHTML = `<svg viewBox="0 0 ${TRACK_VIZ_W} ${TRACK_VIZ_H}" style="width:100%;height:100%;display:block;" xmlns="http://www.w3.org/2000/svg">${dots.join('')}${routeLine}${pickupEl}${destEl}${riderEl}${overlayNote}</svg>`;
-  }
-
-  async function initTrackMap(delivery) {
-    currentTrackDelivery = delivery;
-    trackVizRiderPos = null;
-    trackVizRoutePoints = null;
-    if (trackChannel) { supabaseClient.removeChannel(trackChannel); trackChannel = null; }
-    trackOffRouteStreak = 0;
-
-    renderTrackVisualizer(delivery);
-
-    if (delivery.pickup_lat && delivery.destination_lat) {
-      const route = await fetchRoadRouteBiz(delivery.pickup_lat, delivery.pickup_lng, delivery.destination_lat, delivery.destination_lng);
-      if (route) { trackVizRoutePoints = route; renderTrackVisualizer(delivery); }
-    }
+    setTimeout(() => trackMap.invalidateSize(), 200);
 
     if (delivery.tracking_approved) startTrackRealtime(delivery);
   }
 
   function startTrackRealtime(delivery) {
+    const rider = delivery.riders || {};
+    const icon = L.divIcon({
+      html: `<div style="width:44px;height:44px;border-radius:50%;border:3px solid #E8A33D;background:#16302A;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,0.3);overflow:hidden;">${rider.photo_url ? `<img src="${rider.photo_url}" style="width:100%;height:100%;object-fit:cover;">` : `<div style="width:60%;height:60%;">${trackVehicleIconHtml(rider.vehicle_type)}</div>`}</div>`,
+      className: '', iconSize: [44, 44], iconAnchor: [22, 22]
+    });
+
+    const startLat = delivery.pickup_lat || 6.2104;
+    const startLng = delivery.pickup_lng || 7.0716;
+    trackMarker = L.marker([startLat, startLng], { icon }).addTo(trackMap);
+
     fetchLatestTrackPing(delivery);
 
     trackChannel = supabaseClient
@@ -1904,8 +1851,9 @@
   }
 
   function applyTrackPing(ping, delivery) {
-    trackVizRiderPos = { lat: ping.lat, lng: ping.lng, heading: ping.heading };
-    renderTrackVisualizer(delivery);
+    if (!trackMarker) return;
+    trackMarker.setLatLng([ping.lat, ping.lng]);
+    trackMap.panTo([ping.lat, ping.lng]);
 
     if (delivery.destination_lat && delivery.destination_lng) {
       const distKm = haversineKm(ping.lat, ping.lng, delivery.destination_lat, delivery.destination_lng);
