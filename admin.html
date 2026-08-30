@@ -403,6 +403,29 @@
     }
 
     if (!admin) {
+      // No admin found for this account — check if the admin seat is still unclaimed
+      const { data: existsData } = await supabaseClient.rpc('admins_exist');
+
+      if (!existsData) {
+        // Table is empty — this account can claim admin access directly, using
+        // its own live session, so auth_user_id is guaranteed to match correctly.
+        const { error: claimError } = await supabaseClient.from('admins').insert({
+          auth_user_id: data.user.id,
+          email: email
+        });
+
+        if (claimError) {
+          await supabaseClient.auth.signOut();
+          msg.textContent = "Couldn't claim admin access: " + claimError.message;
+          msg.className = 'form-msg error';
+          return;
+        }
+
+        currentAdmin = { auth_user_id: data.user.id, email };
+        enterDashboard();
+        return;
+      }
+
       await supabaseClient.auth.signOut();
       msg.textContent = "This account isn't authorized for admin access.";
       msg.className = 'form-msg error';
