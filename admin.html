@@ -367,7 +367,7 @@
   }
 
   async function checkIsAdmin(email) {
-    const { data } = await supabaseClient.from('admins').select('*').eq('email', email).limit(1);
+    const { data } = await supabaseClient.from('admins').select('*').ilike('email', email).limit(1);
     return data && data.length > 0 ? data[0] : null;
   }
 
