@@ -70,33 +70,9 @@
   .brand-name { font-size: 16px; font-weight: 700; color: #fff; }
 
   .container {
-    max-width: 520px;
-    margin: 0 auto;
-    padding: 18px 16px 50px;
+    width: 100%;
   }
 
-  .customer-tabs {
-    display: flex;
-    background: #F1F1EE;
-    padding: 4px;
-    border-radius: 11px;
-    margin-bottom: 16px;
-  }
-  .customer-tab-btn {
-    flex: 1;
-    padding: 9px;
-    text-align: center;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--slate);
-    background: transparent;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-  }
-  .customer-tab-btn.active { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-  .customer-tab-panel { display: none; }
-  .customer-tab-panel.active { display: block; animation: fade-in 0.25s ease; }
   @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
 
   .empty-state {
@@ -163,13 +139,61 @@
   .rider-vehicle { font-size: 12px; color: var(--slate); }
 
   /* ---------- Map ---------- */
+  /* ---------- Full-screen map hero ---------- */
+  .map-hero {
+    position: relative;
+    width: 100%;
+    height: calc(100vh - 58px); /* fills the screen below the slim brand header */
+    background: #E5E9F0;
+  }
+
   #map {
     width: 100%;
-    height: 320px;
-    border-radius: var(--radius);
-    border: 1px solid var(--border);
-    margin-bottom: 14px;
-    background: #E5E9F0;
+    height: 100%;
+  }
+
+  .map-overlay-top {
+    position: absolute;
+    top: 14px; left: 14px; right: 14px;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+  }
+  .map-overlay-top > * { pointer-events: auto; }
+
+  .floating-card {
+    background: rgba(255,255,255,0.97);
+    backdrop-filter: blur(6px);
+    border-radius: 16px;
+    padding: 14px 16px;
+    box-shadow: 0 8px 24px rgba(15,23,42,0.12);
+  }
+
+  .map-overlay-bottom {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    z-index: 20;
+    background: var(--surface);
+    border-radius: 22px 22px 0 0;
+    box-shadow: 0 -8px 30px rgba(15,23,42,0.15);
+    padding: 18px 18px 22px;
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+
+  .sheet-handle {
+    width: 40px; height: 4px;
+    background: var(--border);
+    border-radius: 100px;
+    margin: 0 auto 14px;
+  }
+
+  .below-fold-content {
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 24px 16px 50px;
   }
 
   .rider-marker-wrap {
@@ -260,11 +284,6 @@
 
   /* ---------- Wrong direction banner ---------- */
   .wrong-direction-banner {
-    background: #FEF2F2;
-    border: 1.5px solid #FCA5A5;
-    border-radius: 12px;
-    padding: 14px 16px;
-    margin-bottom: 14px;
     display: none;
     align-items: center;
     gap: 10px;
@@ -272,7 +291,12 @@
     font-weight: 600;
     color: #B91C1C;
   }
-  .wrong-direction-banner.visible { display: flex; }
+  .wrong-direction-banner.visible {
+    display: flex;
+    background: rgba(254,242,242,0.97);
+    border: 1.5px solid #FCA5A5;
+  }
+  .wrong-direction-banner svg { width: 16px; height: 16px; flex-shrink: 0; }
 
   /* ---------- Consent request button ---------- */
   .track-btn {
@@ -699,53 +723,54 @@
       </div>` : '';
 
     container.innerHTML = `
-      <div class="delivery-header" id="delivery-header">
-        <div class="delivery-top">
-          <span class="delivery-code mono">${delivery.delivery_code}</span>
-          <span class="tag ${tagClass(delivery)}" id="status-tag">${statusLabels[delivery.status] || delivery.status}</span>
-        </div>
-        <div class="route-text">
-          <span class="label">Pickup:</span> ${delivery.pickup_address}${pickupLandmark}<br>
-          <span class="label">Destination:</span> ${delivery.destination_address}${destLandmark}
-        </div>
-        <div class="rider-row">
-          <div class="rider-avatar-sm">${avatarContent}</div>
-          <div>
-            <div class="rider-name">${rider.name || 'Rider not assigned yet'}</div>
-            <div class="rider-vehicle">${rider.vehicle_type || ''}</div>
-          </div>
-        </div>
-      </div>
-
-      ${pinCardHtml}
-
-      <div id="action-area"></div>
-
-      <div class="customer-tabs">
-        <button class="customer-tab-btn active" data-ctab="ctab-tracking">Live Tracking</button>
-        <button class="customer-tab-btn" data-ctab="ctab-updates">Updates &amp; Details</button>
-      </div>
-
-      <div class="customer-tab-panel active" id="ctab-tracking">
-        <div class="wrong-direction-banner" id="wrong-direction-banner">
-          ⚠️ The rider appears to have moved off the expected route.
-        </div>
-
+      <div class="map-hero">
         <div id="map"></div>
 
-        <div class="stats-row" id="stats-row" style="display:none;">
-          <div class="stat-card">
-            <div class="stat-label">Distance to you</div>
-            <div class="stat-value" id="stat-distance">—</div>
+        <div class="map-overlay-top">
+          <div class="floating-card">
+            <div class="delivery-top" style="margin-bottom:8px;">
+              <span class="delivery-code mono">${delivery.delivery_code}</span>
+              <span class="tag ${tagClass(delivery)}" id="status-tag">${statusLabels[delivery.status] || delivery.status}</span>
+            </div>
+            <div class="route-text">
+              <span class="label">Pickup:</span> ${delivery.pickup_address}${pickupLandmark}<br>
+              <span class="label">Destination:</span> ${delivery.destination_address}${destLandmark}
+            </div>
           </div>
-          <div class="stat-card">
-            <div class="stat-label">Est. arrival</div>
-            <div class="stat-value" id="stat-eta">—</div>
+          <div class="wrong-direction-banner floating-card" id="wrong-direction-banner" style="margin:0;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+            The rider appears to have moved off the expected route.
           </div>
+        </div>
+
+        <div class="map-overlay-bottom">
+          <div class="sheet-handle"></div>
+          <div class="rider-row" style="margin-bottom:14px;">
+            <div class="rider-avatar-sm">${avatarContent}</div>
+            <div>
+              <div class="rider-name">${rider.name || 'Rider not assigned yet'}</div>
+              <div class="rider-vehicle">${rider.vehicle_type || ''}</div>
+            </div>
+          </div>
+
+          <div class="stats-row" id="stats-row" style="display:none;">
+            <div class="stat-card">
+              <div class="stat-label">Distance to you</div>
+              <div class="stat-value" id="stat-distance">—</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Est. arrival</div>
+              <div class="stat-value" id="stat-eta">—</div>
+            </div>
+          </div>
+
+          ${pinCardHtml}
+
+          <div id="action-area"></div>
         </div>
       </div>
 
-      <div class="customer-tab-panel" id="ctab-updates">
+      <div class="below-fold-content">
         <div id="recap-area"></div>
         <div id="proof-photo-area"></div>
         <div id="rating-area"></div>
@@ -753,16 +778,6 @@
         <div class="updates-list" id="updates-list"></div>
       </div>
     `;
-
-    document.querySelectorAll('.customer-tab-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.customer-tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.customer-tab-panel').forEach(p => p.classList.remove('active'));
-        btn.classList.add('active');
-        document.getElementById(btn.dataset.ctab).classList.add('active');
-        if (map) setTimeout(() => map.invalidateSize(), 150);
-      });
-    });
 
     initMap();
     updateActionArea();
@@ -1087,6 +1102,7 @@
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
+    setTimeout(() => map.invalidateSize(), 200);
 
     if (hasPickup) {
       L.circleMarker([delivery.pickup_lat, delivery.pickup_lng], {
