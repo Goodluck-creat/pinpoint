@@ -716,6 +716,23 @@
           <p>No deliveries yet. Create one to get started.</p>
         </div>
       </div>
+
+      <div class="panel-title" style="margin-top:32px;">Developer API</div>
+      <div class="form-card">
+        <p style="font-size:13px; color:var(--slate); margin-bottom:16px; line-height:1.5;">
+          Connect PinPoint directly to your own website, ordering system, or WhatsApp bot — create deliveries automatically the moment an order comes in, instead of typing them in by hand.
+        </p>
+
+        <div id="api-key-display" style="margin-bottom:14px;"></div>
+
+        <button type="button" class="submit-btn" id="generate-api-key-btn">Generate API key</button>
+        <div class="form-msg" id="api-key-msg"></div>
+
+        <div id="api-docs" style="display:none; margin-top:20px;">
+          <div class="panel-title" style="margin-top:0;">Quick start</div>
+          <pre style="background:#0F172A; color:#E2E8F0; padding:14px 16px; border-radius:10px; font-size:12px; overflow-x:auto; line-height:1.6;" id="api-example-code"></pre>
+        </div>
+      </div>
     </div>
 
     <!-- ---------- CREATE DELIVERY ---------- -->
@@ -1080,7 +1097,104 @@
 
     loadRiders();
     loadDeliveries();
+    renderApiKeyDisplay();
   }
+
+  function renderApiKeyDisplay() {
+    const display = document.getElementById('api-key-display');
+    const genBtn = document.getElementById('generate-api-key-btn');
+    const docsBox = document.getElementById('api-docs');
+
+    if (currentBusiness.api_key) {
+      display.innerHTML = `
+        <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Your API key</label>
+        <div style="display:flex; gap:8px;">
+          <input type="text" readonly value="${currentBusiness.api_key}" style="font-family:'JetBrains Mono', monospace; font-size:12px; background:#F8FAFC;">
+          <button type="button" class="use-location-btn" id="copy-api-key-btn" style="flex-shrink:0;">Copy</button>
+        </div>`;
+      genBtn.textContent = 'Regenerate API key';
+      showApiDocs();
+
+      document.getElementById('copy-api-key-btn').addEventListener('click', () => {
+        navigator.clipboard.writeText(currentBusiness.api_key);
+        const btn = document.getElementById('copy-api-key-btn');
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
+      });
+    } else {
+      display.innerHTML = '';
+      genBtn.textContent = 'Generate API key';
+      docsBox.style.display = 'none';
+    }
+  }
+
+  function showApiDocs() {
+    const docsBox = document.getElementById('api-docs');
+    const codeEl = document.getElementById('api-example-code');
+    const apiUrl = `${SUPABASE_URL}/functions/v1/pinpoint-api`;
+
+    codeEl.textContent =
+`// Create a delivery
+fetch("${apiUrl}/deliveries", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "x-api-key": "${currentBusiness.api_key}"
+  },
+  body: JSON.stringify({
+    customer_name: "Chioma Okafor",
+    customer_phone: "08012345678",
+    pickup_address: "Onu Street, Awka",
+    destination_address: "Umukabia, Awka",
+    rider_id: "YOUR_RIDER_ID"
+  })
+});
+
+// Check a delivery's status
+fetch("${apiUrl}/deliveries/PPD-123456", {
+  headers: { "x-api-key": "${currentBusiness.api_key}" }
+});
+
+// List your riders (to get a rider_id)
+fetch("${apiUrl}/riders", {
+  headers: { "x-api-key": "${currentBusiness.api_key}" }
+});`;
+
+    docsBox.style.display = 'block';
+  }
+
+  document.getElementById('generate-api-key-btn').addEventListener('click', async () => {
+    const btn = document.getElementById('generate-api-key-btn');
+    const msg = document.getElementById('api-key-msg');
+
+    if (currentBusiness.api_key && !confirm('This will invalidate your current key immediately. Continue?')) return;
+
+    btn.disabled = true;
+    btn.textContent = 'Generating…';
+    msg.className = 'form-msg';
+
+    const newKey = 'pk_live_' + Array.from(crypto.getRandomValues(new Uint8Array(24)))
+      .map(b => b.toString(16).padStart(2, '0')).join('');
+
+    const { error } = await supabaseClient
+      .from('businesses')
+      .update({ api_key: newKey })
+      .eq('id', currentBusiness.id);
+
+    btn.disabled = false;
+
+    if (error) {
+      msg.textContent = 'Could not generate key: ' + error.message;
+      msg.className = 'form-msg error';
+      btn.textContent = currentBusiness.api_key ? 'Regenerate API key' : 'Generate API key';
+      return;
+    }
+
+    currentBusiness.api_key = newKey;
+    renderApiKeyDisplay();
+    msg.textContent = 'API key generated. Save it somewhere safe — treat it like a password.';
+    msg.className = 'form-msg success';
+  });
 
   function isOverFreeLimit() {
     if (!platformSettings.subscriptions_enabled) return false;
