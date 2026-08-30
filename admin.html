@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PinPoint — Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --bg: #F7F8FA;
+    --surface: #FFFFFF;
+    --ink: #16302A;
+    --slate: #64748B;
+    --slate-light: #94A3B8;
+    --border: #E7EAF0;
+    --brand: #16302A;
+    --brand-light: #1F4239;
+    --cream: #F7F3EA;
+    --cream-dim: #C7D6CC;
+    --primary: #E8A33D;
+    --primary-dark: #D68A28;
+    --primary-tint: #FDF3E2;
+    --live: #16A34A;
+    --live-tint: #ECFDF3;
+    --red: #B91C1C;
+    --red-tint: #FEF2F2;
+    --radius: 16px;
+    --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
+    --shadow-md: 0 4px 16px rgba(15, 23, 42, 0.06);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  h1, h2, h3 { font-family: 'Space Grotesk', sans-serif; letter-spacing: -0.01em; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+
+  @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+  .fade-in { animation: fade-in 0.4s ease; }
+
+  #auth-view {
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--brand);
+    padding: 20px;
+  }
+
+  .auth-card {
+    width: 100%;
+    max-width: 380px;
+    background: var(--surface);
+    border-radius: 20px;
+    padding: 30px 26px;
+    box-shadow: 0 30px 80px -20px rgba(0,0,0,0.4);
+  }
+
+  .auth-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
+  .brand-mark {
+    width: 34px; height: 34px; border-radius: 9px;
+    background: linear-gradient(135deg, var(--primary), #F4C06B);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .brand-mark svg { width: 18px; height: 18px; }
+  .auth-brand-name { font-size: 17px; font-weight: 700; }
+  .auth-brand-tag { font-size: 12px; color: var(--slate); margin-left: 8px; padding-left: 8px; border-left: 1px solid var(--border); }
+
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+
+  input {
+    width: 100%;
+    padding: 11px 13px;
+    border: 1.5px solid var(--border);
+    border-radius: 9px;
+    font-size: 14px;
+  }
+  input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-tint); }
+
+  .submit-btn {
+    width: 100%;
+    padding: 13px;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: 9px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .submit-btn:hover { background: var(--primary-dark); }
+  .submit-btn:disabled { background: var(--slate-light); cursor: not-allowed; }
+
+  .form-msg { font-size: 13px; margin-top: 12px; padding: 10px 12px; border-radius: 8px; display: none; }
+  .form-msg.error { display: block; background: var(--red-tint); color: var(--red); }
+  .form-msg.success { display: block; background: var(--live-tint); color: #067A3E; }
+
+  .dashboard-shell { display: flex; flex-direction: column; height: 100vh; }
+
+  .top-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 24px; background: var(--brand); flex-shrink: 0;
+  }
+  .top-header-brand { display: flex; align-items: center; gap: 10px; }
+  .top-header-brand-name { font-size: 16px; font-weight: 700; color: #fff; }
+  .top-header-tag { font-size: 12px; color: var(--cream-dim); margin-left: 8px; padding-left: 8px; border-left: 1px solid var(--brand-light); }
+  .logout-link {
+    font-size: 12px; font-weight: 600; color: var(--cream-dim);
+    background: none; border: 1px solid var(--brand-light); border-radius: 100px;
+    padding: 6px 14px; cursor: pointer;
+  }
+  .logout-link:hover { color: #fff; border-color: var(--cream-dim); }
+
+  .bottom-nav {
+    position: fixed; bottom: 0; left: 0; right: 0; display: flex;
+    background: var(--surface); border-top: 1px solid var(--border);
+    box-shadow: 0 -4px 16px rgba(15,23,42,0.06); z-index: 30;
+  }
+  .nav-item {
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;
+    padding: 10px 0 12px; font-size: 11px; font-weight: 600; color: var(--slate-light);
+    cursor: pointer; border: none; background: none; transition: color 0.15s ease;
+  }
+  .nav-item svg { width: 20px; height: 20px; }
+  .nav-item.active { color: var(--primary-dark); }
+
+  .main-content { flex: 1; overflow-y: auto; padding: 32px 40px 90px; }
+  @media (max-width: 700px) { .main-content { padding: 20px 20px 90px; } }
+
+  .content-section { display: none; animation: fade-in 0.3s ease; }
+  .content-section.active { display: block; }
+
+  .section-header { margin-bottom: 26px; }
+  .section-header h2 { font-size: 24px; }
+  .section-header p { font-size: 13px; color: var(--slate); margin-top: 4px; }
+
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+  @media (max-width: 800px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 22px; box-shadow: var(--shadow-sm); }
+  .stat-icon { width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center; margin-bottom: 14px; }
+  .stat-icon svg { width: 17px; height: 17px; }
+  .stat-icon.orange { background: var(--primary-tint); } .stat-icon.orange svg { stroke: var(--primary-dark); }
+  .stat-icon.green { background: var(--live-tint); } .stat-icon.green svg { stroke: var(--live); }
+  .stat-icon.brand { background: #EAF0EE; } .stat-icon.brand svg { stroke: var(--brand); }
+  .stat-icon.slate { background: #F1F5F9; } .stat-icon.slate svg { stroke: var(--slate); }
+  .stat-value { font-size: 26px; font-weight: 700; font-family: 'Space Grotesk', sans-serif; margin-bottom: 2px; }
+  .stat-label { font-size: 13px; color: var(--slate); }
+
+  .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow-sm); margin-bottom: 24px; }
+  .chart-title { font-size: 13px; font-weight: 600; color: var(--slate); margin-bottom: 14px; }
+
+  .track-search { position: relative; margin-bottom: 20px; }
+  .track-search svg { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; stroke: var(--slate-light); }
+  .track-search input { padding: 15px 16px 15px 46px; border-radius: 14px; box-shadow: var(--shadow-sm); }
+
+  .business-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 20px 22px; margin-bottom: 14px; box-shadow: var(--shadow-sm);
+  }
+  .business-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+  .business-name { font-size: 16px; font-weight: 700; }
+  .business-email { font-size: 12px; color: var(--slate); }
+  .badge-row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .badge { font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: 100px; text-transform: uppercase; letter-spacing: 0.03em; }
+  .badge.subscribed { background: var(--live-tint); color: #067A3E; }
+  .badge.free { background: #F1F5F9; color: var(--slate); }
+  .badge.suspended { background: var(--red-tint); color: var(--red); }
+
+  .business-stats-row { display: flex; gap: 20px; font-size: 12px; color: var(--slate); margin-bottom: 14px; flex-wrap: wrap; }
+  .business-stats-row strong { color: var(--ink); font-family: 'Space Grotesk', sans-serif; }
+
+  .business-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .action-btn {
+    font-size: 12px; font-weight: 600; padding: 8px 14px; border-radius: 100px;
+    border: none; cursor: pointer;
+  }
+  .action-btn.subscribe { background: var(--live-tint); color: #067A3E; }
+  .action-btn.unsubscribe { background: #F1F5F9; color: var(--slate); }
+  .action-btn.suspend { background: var(--red-tint); color: var(--red); }
+  .action-btn.unsuspend { background: var(--primary-tint); color: var(--primary-dark); }
+
+  .empty-state {
+    border: 1.5px dashed var(--border); border-radius: var(--radius);
+    padding: 50px 24px; text-align: center; color: var(--slate); background: var(--surface);
+  }
+
+  .settings-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 24px; margin-bottom: 20px; max-width: 560px; box-shadow: var(--shadow-sm);
+  }
+  .settings-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .settings-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+  .settings-desc { font-size: 13px; color: var(--slate); line-height: 1.5; max-width: 380px; }
+
+  .toggle-switch {
+    position: relative; width: 46px; height: 26px; border-radius: 100px;
+    background: var(--border); cursor: pointer; transition: background 0.25s ease; flex-shrink: 0;
+  }
+  .toggle-switch.on { background: var(--live); }
+  .toggle-switch::after {
+    content: ''; position: absolute; top: 2px; left: 2px; width: 22px; height: 22px;
+    border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+    transition: transform 0.25s ease;
+  }
+  .toggle-switch.on::after { transform: translateX(20px); }
+
+  .settings-input-row { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+  .settings-input-row input { width: 100px; }
+  .settings-save-btn {
+    padding: 9px 16px; background: var(--primary); color: #fff; border: none;
+    border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<div id="auth-view">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 2C7.58 2 4 5.58 4 10c0 5.25 8 12 8 12s8-6.75 8-12c0-4.42-3.58-8-8-8z" fill="white"/><circle cx="12" cy="10" r="3" fill="#16302A"/></svg>
+      </div>
+      <span class="auth-brand-name">PinPoint</span>
+      <span class="auth-brand-tag">Admin</span>
+    </div>
+
+    <form id="login-form">
+      <div class="field"><label for="login-email">Email</label><input type="email" id="login-email" required placeholder="admin@yourcompany.com"></div>
+      <div class="field"><label for="login-password">Password</label><input type="password" id="login-password" required placeholder="••••••••"></div>
+      <button type="submit" class="submit-btn" id="login-btn">Log in</button>
+      <div class="form-msg" id="login-msg"></div>
+    </form>
+  </div>
+</div>
+
+<div class="dashboard-shell" id="dashboard-view" style="display:none;">
+
+  <header class="top-header">
+    <div class="top-header-brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 2C7.58 2 4 5.58 4 10c0 5.25 8 12 8 12s8-6.75 8-12c0-4.42-3.58-8-8-8z" fill="white"/><circle cx="12" cy="10" r="3" fill="#16302A"/></svg>
+      </div>
+      <span class="top-header-brand-name">PinPoint</span>
+      <span class="top-header-tag">Admin</span>
+    </div>
+    <button class="logout-link" id="logout-btn">Log out</button>
+  </header>
+
+  <main class="main-content">
+
+    <div class="content-section active" id="section-overview">
+      <div class="section-header"><h2>Platform Overview</h2><p>How PinPoint is doing across every business.</p></div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon brand"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"/></svg></div>
+          <div class="stat-value" id="stat-total-businesses">0</div>
+          <div class="stat-label">Total businesses</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon orange"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg></div>
+          <div class="stat-value" id="stat-total-riders">0</div>
+          <div class="stat-label">Total riders</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"/></svg></div>
+          <div class="stat-value" id="stat-total-deliveries">0</div>
+          <div class="stat-label">Total deliveries</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon slate"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M9 12l2 2 4-4M12 2a10 10 0 100 20 10 10 0 000-20z"/></svg></div>
+          <div class="stat-value" id="stat-subscribed-count">0</div>
+          <div class="stat-label">Subscribed businesses</div>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-title">Platform-wide deliveries — last 7 days</div>
+        <canvas id="platform-volume-chart" height="90"></canvas>
+      </div>
+    </div>
+
+    <div class="content-section" id="section-businesses">
+      <div class="section-header"><h2>Businesses</h2><p>Every business registered on PinPoint.</p></div>
+
+      <div class="track-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input type="text" id="business-search-input" placeholder="Search businesses by name or email...">
+      </div>
+
+      <div id="businesses-list">
+        <div class="empty-state">Loading businesses…</div>
+      </div>
+    </div>
+
+    <div class="content-section" id="section-settings">
+      <div class="section-header"><h2>Settings</h2><p>Platform-wide controls.</p></div>
+
+      <div class="settings-card">
+        <div class="settings-row">
+          <div>
+            <div class="settings-title">Require subscriptions</div>
+            <div class="settings-desc">When enabled, businesses that exceed the free delivery limit below will be asked to subscribe before creating more deliveries. Businesses you've manually marked as "Subscribed" are exempt.</div>
+          </div>
+          <div class="toggle-switch" id="subscriptions-toggle"></div>
+        </div>
+        <div class="settings-input-row">
+          <label style="font-size:13px; font-weight:600;">Free delivery limit:</label>
+          <input type="number" id="free-limit-input" min="0">
+          <button class="settings-save-btn" id="save-limit-btn">Save</button>
+        </div>
+        <div class="form-msg" id="settings-msg"></div>
+      </div>
+    </div>
+
+  </main>
+
+  <nav class="bottom-nav">
+    <button class="nav-item active" data-section="section-overview">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+      Overview
+    </button>
+    <button class="nav-item" data-section="section-businesses">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"/></svg>
+      Businesses
+    </button>
+    <button class="nav-item" data-section="section-settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      Settings
+    </button>
+  </nav>
+</div>
+
+<script>
+  const SUPABASE_URL = 'https://wtxikghyylclqnhxfcvu.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_3XEbw4-lAFfIVgG-haVbGQ_Q2305QI7';
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const authView = document.getElementById('auth-view');
+  const dashboardView = document.getElementById('dashboard-view');
+  let currentAdmin = null;
+  let allBusinesses = [];
+  let platformSettings = { subscriptions_enabled: false, free_delivery_limit: 20 };
+
+  document.querySelectorAll('.nav-item').forEach(btn => {
+    btn.addEventListener('click', () => goToSection(btn.dataset.section));
+  });
+
+  function goToSection(sectionId) {
+    document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+    const btn = document.querySelector(`[data-section="${sectionId}"]`);
+    if (btn) btn.classList.add('active');
+    document.getElementById(sectionId).classList.add('active');
+  }
+
+  async function checkIsAdmin(email) {
+    const { data } = await supabaseClient.from('admins').select('*').eq('email', email).limit(1);
+    return data && data.length > 0 ? data[0] : null;
+  }
+
+  document.getElementById('login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('login-btn');
+    const msg = document.getElementById('login-msg');
+    btn.disabled = true; btn.textContent = 'Logging in…'; msg.className = 'form-msg';
+
+    const email = document.getElementById('login-email').value;
+    const password = document.getElementById('login-password').value;
+
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+
+    if (error) {
+      btn.disabled = false; btn.textContent = 'Log in';
+      msg.textContent = error.message;
+      msg.className = 'form-msg error';
+      return;
+    }
+
+    const admin = await checkIsAdmin(email);
+    btn.disabled = false; btn.textContent = 'Log in';
+
+    if (!admin) {
+      await supabaseClient.auth.signOut();
+      msg.textContent = "This account isn't authorized for admin access.";
+      msg.className = 'form-msg error';
+      return;
+    }
+
+    currentAdmin = admin;
+    enterDashboard();
+  });
+
+  document.getElementById('logout-btn').addEventListener('click', async () => {
+    await supabaseClient.auth.signOut();
+    currentAdmin = null;
+    authView.style.display = 'flex';
+    dashboardView.style.display = 'none';
+  });
+
+  async function enterDashboard() {
+    authView.style.display = 'none';
+    dashboardView.style.display = 'flex';
+    dashboardView.classList.add('fade-in');
+    await loadPlatformSettings();
+    await loadAllBusinesses();
+    loadPlatformStats();
+  }
+
+  supabaseClient.auth.getSession().then(async ({ data: { session } }) => {
+    if (session) {
+      const admin = await checkIsAdmin(session.user.email);
+      if (admin) { currentAdmin = admin; enterDashboard(); return; }
+    }
+    authView.style.display = 'flex';
+    dashboardView.style.display = 'none';
+  });
+
+  async function loadPlatformSettings() {
+    const { data } = await supabaseClient.from('platform_settings').select('*').eq('id', 1).limit(1);
+    if (data && data.length > 0) {
+      platformSettings = data[0];
+      document.getElementById('subscriptions-toggle').classList.toggle('on', platformSettings.subscriptions_enabled);
+      document.getElementById('free-limit-input').value = platformSettings.free_delivery_limit;
+    }
+  }
+
+  document.getElementById('subscriptions-toggle').addEventListener('click', async () => {
+    const toggle = document.getElementById('subscriptions-toggle');
+    const newValue = !toggle.classList.contains('on');
+    toggle.classList.toggle('on', newValue);
+
+    const { error } = await supabaseClient.from('platform_settings')
+      .update({ subscriptions_enabled: newValue, updated_at: new Date().toISOString() })
+      .eq('id', 1);
+
+    const msg = document.getElementById('settings-msg');
+    if (error) {
+      toggle.classList.toggle('on', !newValue);
+      msg.textContent = 'Could not update: ' + error.message;
+      msg.className = 'form-msg error';
+    } else {
+      platformSettings.subscriptions_enabled = newValue;
+      msg.textContent = newValue
+        ? 'Subscriptions are now required platform-wide (beyond the free limit).'
+        : 'Subscriptions are now optional — everything is free again.';
+      msg.className = 'form-msg success';
+    }
+  });
+
+  document.getElementById('save-limit-btn').addEventListener('click', async () => {
+    const value = parseInt(document.getElementById('free-limit-input').value, 10);
+    const msg = document.getElementById('settings-msg');
+    if (isNaN(value) || value < 0) {
+      msg.textContent = 'Please enter a valid number.';
+      msg.className = 'form-msg error';
+      return;
+    }
+
+    const { error } = await supabaseClient.from('platform_settings')
+      .update({ free_delivery_limit: value, updated_at: new Date().toISOString() })
+      .eq('id', 1);
+
+    if (error) {
+      msg.textContent = 'Could not update: ' + error.message;
+      msg.className = 'form-msg error';
+    } else {
+      platformSettings.free_delivery_limit = value;
+      msg.textContent = `Free delivery limit updated to ${value}.`;
+      msg.className = 'form-msg success';
+    }
+  });
+
+  async function loadAllBusinesses() {
+    const { data: businesses } = await supabaseClient.from('businesses').select('*').order('created_at', { ascending: false });
+    if (!businesses) { allBusinesses = []; renderBusinessesList([]); return; }
+
+    const enriched = await Promise.all(businesses.map(async (b) => {
+      const { count: riderCount } = await supabaseClient.from('riders').select('*', { count: 'exact', head: true }).eq('business_id', b.id);
+      const { count: deliveryCount } = await supabaseClient.from('deliveries').select('*', { count: 'exact', head: true }).eq('business_id', b.id);
+      return { ...b, riderCount: riderCount || 0, deliveryCount: deliveryCount || 0 };
+    }));
+
+    allBusinesses = enriched;
+    renderBusinessesList(enriched);
+  }
+
+  function renderBusinessesList(list) {
+    const container = document.getElementById('businesses-list');
+    if (!list || list.length === 0) {
+      container.innerHTML = `<div class="empty-state"><p>No businesses match.</p></div>`;
+      return;
+    }
+
+    container.innerHTML = list.map(b => `
+      <div class="business-card">
+        <div class="business-top">
+          <div>
+            <div class="business-name">${b.name}</div>
+            <div class="business-email">${b.email || ''}</div>
+          </div>
+          <div class="badge-row">
+            <span class="badge ${b.is_subscribed ? 'subscribed' : 'free'}">${b.is_subscribed ? 'Subscribed' : 'Free'}</span>
+            ${b.is_suspended ? '<span class="badge suspended">Suspended</span>' : ''}
+          </div>
+        </div>
+        <div class="business-stats-row">
+          <span><strong>${b.riderCount}</strong> riders</span>
+          <span><strong>${b.deliveryCount}</strong> deliveries</span>
+          <span>Joined ${new Date(b.created_at).toLocaleDateString()}</span>
+        </div>
+        <div class="business-actions">
+          <button class="action-btn ${b.is_subscribed ? 'unsubscribe' : 'subscribe'}" data-action="toggle-subscribe" data-id="${b.id}">
+            ${b.is_subscribed ? 'Remove subscription' : 'Mark as subscribed'}
+          </button>
+          <button class="action-btn ${b.is_suspended ? 'unsuspend' : 'suspend'}" data-action="toggle-suspend" data-id="${b.id}">
+            ${b.is_suspended ? 'Unsuspend' : 'Suspend'}
+          </button>
+        </div>
+      </div>
+    `).join('');
+
+    container.querySelectorAll('[data-action]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.dataset.id;
+        const action = btn.dataset.action;
+        const business = allBusinesses.find(b => b.id === id);
+        if (!business) return;
+
+        btn.disabled = true;
+
+        if (action === 'toggle-subscribe') {
+          await supabaseClient.from('businesses').update({ is_subscribed: !business.is_subscribed }).eq('id', id);
+        } else if (action === 'toggle-suspend') {
+          await supabaseClient.from('businesses').update({ is_suspended: !business.is_suspended }).eq('id', id);
+        }
+
+        await loadAllBusinesses();
+        loadPlatformStats();
+      });
+    });
+  }
+
+  document.getElementById('business-search-input').addEventListener('input', (e) => {
+    const term = e.target.value.trim().toLowerCase();
+    const filtered = term
+      ? allBusinesses.filter(b => b.name.toLowerCase().includes(term) || (b.email && b.email.toLowerCase().includes(term)))
+      : allBusinesses;
+    renderBusinessesList(filtered);
+  });
+
+  let platformChartInstance = null;
+
+  async function loadPlatformStats() {
+    document.getElementById('stat-total-businesses').textContent = allBusinesses.length;
+    document.getElementById('stat-subscribed-count').textContent = allBusinesses.filter(b => b.is_subscribed).length;
+
+    const totalRiders = allBusinesses.reduce((sum, b) => sum + b.riderCount, 0);
+    const totalDeliveries = allBusinesses.reduce((sum, b) => sum + b.deliveryCount, 0);
+    document.getElementById('stat-total-riders').textContent = totalRiders;
+    document.getElementById('stat-total-deliveries').textContent = totalDeliveries;
+
+    const { data: recentDeliveries } = await supabaseClient
+      .from('deliveries')
+      .select('created_at')
+      .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
+
+    const days = [], counts = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      days.push(d.toLocaleDateString([], { weekday: 'short' }));
+      const dayStr = d.toDateString();
+      counts.push((recentDeliveries || []).filter(x => new Date(x.created_at).toDateString() === dayStr).length);
+    }
+
+    const ctx = document.getElementById('platform-volume-chart');
+    if (platformChartInstance) platformChartInstance.destroy();
+    platformChartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: { labels: days, datasets: [{ data: counts, backgroundColor: '#E8A33D', borderRadius: 6, maxBarThickness: 32 }] },
+      options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+    });
+  }
+</script>
+
+</body>
+</html>

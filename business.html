@@ -303,6 +303,17 @@
   .quick-actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 28px; }
   @media (max-width: 700px) { .quick-actions { grid-template-columns: repeat(2, 1fr); } }
 
+  .subscription-warning {
+    background: #FEF2F2;
+    border: 1.5px solid #FCA5A5;
+    border-radius: 12px;
+    padding: 14px 18px;
+    margin-bottom: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #B91C1C;
+  }
+
   .quick-action-btn {
     display: flex; flex-direction: column; align-items: center; gap: 10px;
     background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
@@ -637,6 +648,8 @@
     <div class="content-section active" id="section-overview">
       <div class="section-header"><div><h2>Overview</h2><p>A quick look at how things are moving today.</p></div></div>
 
+      <div id="subscription-banner"></div>
+
       <div class="quick-actions">
         <button class="quick-action-btn" id="qa-new-delivery">
           <div class="quick-action-icon orange"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div>
@@ -957,14 +970,33 @@
     return created;
   }
 
+  let platformSettings = { subscriptions_enabled: false, free_delivery_limit: 20 };
+
   async function enterDashboard(business) {
+    if (business.is_suspended) {
+      alert('This business account has been suspended. Please contact PinPoint support.');
+      await supabaseClient.auth.signOut();
+      showAuthView();
+      return;
+    }
+
     currentBusiness = business;
     authView.style.display = 'none';
     dashboardView.style.display = 'flex';
     dashboardView.classList.add('fade-in');
     businessNameLabel.textContent = business.name;
+
+    const { data: settingsData } = await supabaseClient.from('platform_settings').select('*').eq('id', 1).limit(1);
+    if (settingsData && settingsData.length > 0) platformSettings = settingsData[0];
+
     loadRiders();
     loadDeliveries();
+  }
+
+  function isOverFreeLimit() {
+    if (!platformSettings.subscriptions_enabled) return false;
+    if (currentBusiness && currentBusiness.is_subscribed) return false;
+    return lastLoadedDeliveries.length >= platformSettings.free_delivery_limit;
   }
 
   function showAuthView() {
@@ -1414,6 +1446,28 @@
     document.getElementById('stat-active').textContent = data.filter(d => d.status !== 'delivered' && d.status !== 'failed').length;
     renderDeliveriesList(data);
     renderRecentDeliveries(data);
+    renderSubscriptionBanner();
+  }
+
+  function renderSubscriptionBanner() {
+    const banner = document.getElementById('subscription-banner');
+    if (!banner) return;
+
+    if (!platformSettings.subscriptions_enabled || (currentBusiness && currentBusiness.is_subscribed)) {
+      banner.innerHTML = '';
+      return;
+    }
+
+    const used = lastLoadedDeliveries.length;
+    const limit = platformSettings.free_delivery_limit;
+
+    if (used >= limit) {
+      banner.innerHTML = `<div class="subscription-warning">You've used all ${limit} free deliveries. Contact PinPoint to subscribe and keep creating deliveries.</div>`;
+    } else if (used >= limit - 3) {
+      banner.innerHTML = `<div class="subscription-warning">You've used ${used} of ${limit} free deliveries — almost at your limit.</div>`;
+    } else {
+      banner.innerHTML = '';
+    }
   }
 
   function renderRecentDeliveries(data) {
@@ -1506,6 +1560,13 @@
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+
+    if (isOverFreeLimit()) {
+      formMsg.textContent = `You've reached the free limit of ${platformSettings.free_delivery_limit} deliveries. Please contact PinPoint to subscribe and keep creating deliveries.`;
+      formMsg.className = 'form-msg error';
+      return;
+    }
+
     submitBtn.disabled = true;
     submitBtn.textContent = 'Locating addresses…';
     formMsg.className = 'form-msg';
