@@ -916,22 +916,46 @@
 
   async function reverseGeocodeCustomer(lat, lng) {
     try {
-      const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`;
+      const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`;
       const res = await fetch(url);
       const data = await res.json();
-      return data.display_name || null;
-    } catch (e) { return null; }
+      const addr = data.address || {};
+      return {
+        displayName: data.display_name || null,
+        state: addr.state || null,
+        lga: addr.county || addr.state_district || addr.city || null
+      };
+    } catch (e) { return { displayName: null, state: null, lga: null }; }
+  }
+
+  function lgaPrefix(lga) {
+    if (!lga) return 'NGA';
+    const cleaned = lga.replace(/[^a-zA-Z]/g, '').toUpperCase();
+    return cleaned.slice(0, 3) || 'NGA';
+  }
+
+  async function generatePinCode(prefix) {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    for (let attempt = 0; attempt < 5; attempt++) {
+      let suffix = '';
+      for (let i = 0; i < 4; i++) suffix += chars[Math.floor(Math.random() * chars.length)];
+      const code = `PIN-${prefix}-${suffix}`;
+      const { data } = await supabaseClient.from('locations').select('id').eq('pin_code', code).limit(1);
+      if (!data || data.length === 0) return code;
+    }
+    return `PIN-${prefix}-${Date.now().toString(36).toUpperCase().slice(-4)}`;
   }
 
   function renderImproveLocationCard() {
     const area = document.getElementById('improve-location-area');
     if (!area) return;
 
+    const savedCode = sessionStorage.getItem(`location-code-${delivery.id}`);
     if (sessionStorage.getItem(`location-shared-${delivery.id}`)) {
       area.innerHTML = `
         <div class="improve-location-card done">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4M12 2a10 10 0 100 20 10 10 0 000-20z"/></svg>
-          Thanks for helping us improve delivery accuracy in your area!
+          ${savedCode ? `Thanks! Your PinPoint code is <strong>${savedCode}</strong> — share it next time instead of a full address.` : 'Thanks for helping us improve delivery accuracy in your area!'}
         </div>`;
       return;
     }
@@ -939,7 +963,7 @@
     area.innerHTML = `
       <div class="improve-location-card">
         <h3>Help us serve you better next time</h3>
-        <p>Confirm your exact location so future deliveries to you (and your neighbours) are even more accurate. Completely optional.</p>
+        <p>Confirm your exact location so future deliveries to you (and your neighbours) are even more accurate — and get a reusable PinPoint code for this address. Completely optional.</p>
         <button class="improve-location-btn" id="improve-location-btn">Share my exact location</button>
         <div class="improve-location-msg" id="improve-location-msg"></div>
       </div>`;
@@ -962,16 +986,25 @@
           const { latitude, longitude } = position.coords;
 
           // Skip saving if a very similar spot is already in the shared address book
-          const { data: nearby } = await supabaseClient.from('locations').select('id, lat, lng')
+          const { data: nearby } = await supabaseClient.from('locations').select('id, lat, lng, pin_code')
             .gte('lat', latitude - 0.003).lte('lat', latitude + 0.003)
             .gte('lng', longitude - 0.003).lte('lng', longitude + 0.003);
-          const isDuplicate = (nearby || []).some(loc => haversineKmLocal(latitude, longitude, loc.lat, loc.lng) < 0.1);
+          const duplicate = (nearby || []).find(loc => haversineKmLocal(latitude, longitude, loc.lat, loc.lng) < 0.1);
 
-          if (!isDuplicate) {
-            const address = await reverseGeocodeCustomer(latitude, longitude) || delivery.destination_address;
-            await supabaseClient.from('locations').insert({ name: address, lat: latitude, lng: longitude });
+          let finalCode = null;
+          if (duplicate) {
+            finalCode = duplicate.pin_code;
+          } else {
+            const geo = await reverseGeocodeCustomer(latitude, longitude);
+            const address = geo.displayName || delivery.destination_address;
+            finalCode = await generatePinCode(lgaPrefix(geo.lga));
+            await supabaseClient.from('locations').insert({
+              name: address, lat: latitude, lng: longitude, pin_code: finalCode,
+              state: geo.state, lga: geo.lga
+            });
           }
 
+          if (finalCode) sessionStorage.setItem(`location-code-${delivery.id}`, finalCode);
           sessionStorage.setItem(`location-shared-${delivery.id}`, 'true');
           renderImproveLocationCard();
         },

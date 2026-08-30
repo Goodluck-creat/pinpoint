@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="nigeria-states-lgas.js"></script>
 <style>
   :root {
     --bg: #FAFBFC;
@@ -441,8 +442,8 @@
   .address-widget-header p { font-size: 14px; color: var(--slate); max-width: 460px; margin: 0 auto; }
 
   .aw-field { margin-bottom: 14px; }
-  .aw-field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
-  .aw-field input {
+  .aw-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .aw-field-row select {
     width: 100%;
     padding: 12px 14px;
     border: 1.5px solid var(--border);
@@ -451,10 +452,31 @@
     font-family: 'Inter', sans-serif;
     background: var(--surface);
   }
-  .aw-field input:focus {
+  .aw-field-row select:disabled { background: #F1F5F9; color: var(--slate-light); }
+  .aw-field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+  .aw-field input, .aw-field select {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 9px;
+    font-size: 14px;
+    font-family: 'Inter', sans-serif;
+    background: var(--surface);
+  }
+  .aw-field input:focus, .aw-field select:focus {
     outline: none;
     border-color: var(--primary);
     box-shadow: 0 0 0 3px var(--primary-tint);
+  }
+  .aw-field select:disabled { background: #F4F5F7; color: var(--slate-light); cursor: not-allowed; }
+
+  .aw-field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  @media (max-width: 500px) {
+    .aw-field-row { grid-template-columns: 1fr; }
   }
 
   .aw-map {
@@ -492,6 +514,37 @@
   .aw-msg.success { display: block; background: var(--live-tint); color: #067A5C; }
   .aw-msg.duplicate { display: block; background: #FFF7E6; color: #B7791F; }
   .aw-msg.error { display: block; background: #FEF2F2; color: #B91C1C; }
+
+  .aw-lookup-divider {
+    text-align: center;
+    font-size: 12px;
+    color: var(--slate-light);
+    margin: 20px 0;
+    position: relative;
+  }
+  .aw-lookup-divider::before, .aw-lookup-divider::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 40%;
+    height: 1px;
+    background: var(--border);
+  }
+  .aw-lookup-divider::before { left: 0; }
+  .aw-lookup-divider::after { right: 0; }
+
+  .aw-lookup-btn {
+    padding: 12px 18px;
+    background: var(--brand);
+    color: #fff;
+    border: none;
+    border-radius: 9px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .aw-lookup-btn:hover { background: var(--brand-light); }
 
   /* ---------- Footer ---------- */
   footer {
@@ -535,16 +588,16 @@
 </nav>
 
 <section class="wrap hero">
-  <div>
-    <h1>Know where your delivery is. And if it's going wrong.</h1>
-    <p class="hero-sub">Live tracking for your riders and customers — no app to download, no complexity.</p>
+ <div>
+    <h1>See where your delivery is, in real time.</h1>
+    <p class="hero-sub">Your rider and your customer can both watch the delivery move on a map — live. No app to download. Just open it in your browser.</p>
     <div class="hero-ctas">
       <a href="business.html" class="btn-primary">Register your business</a>
       <a href="business.html" class="btn-secondary">Log in</a>
     </div>
     <div class="no-download-note">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
-      Works right in the browser — no app download for riders or customers
+      No app download needed — for riders or customers
     </div>
   </div>
 
@@ -635,11 +688,33 @@
         <input type="text" id="aw-name" placeholder="e.g. Blue Gate House, Ifite Road">
       </div>
 
+      <div class="aw-field-row">
+        <div class="aw-field">
+          <label for="aw-state">State</label>
+          <select id="aw-state"><option value="">Select state</option></select>
+        </div>
+        <div class="aw-field">
+          <label for="aw-lga">Local Government Area</label>
+          <select id="aw-lga" disabled><option value="">Select state first</option></select>
+        </div>
+      </div>
+
       <div class="aw-map" id="aw-map"></div>
       <div class="aw-hint">Tap the map to drop a pin at the exact spot</div>
 
       <button class="aw-submit" id="aw-submit" disabled>Save this address</button>
       <div class="aw-msg" id="aw-msg"></div>
+
+      <div class="aw-lookup-divider">or</div>
+
+      <div class="aw-field">
+        <label for="aw-lookup-code">Already have a PinPoint code?</label>
+        <div style="display:flex; gap:8px;">
+          <input type="text" id="aw-lookup-code" placeholder="e.g. PIN-AWK-7F42" style="text-transform:uppercase;">
+          <button class="aw-lookup-btn" id="aw-lookup-btn">Look up</button>
+        </div>
+      </div>
+      <div class="aw-msg" id="aw-lookup-msg"></div>
     </div>
   </div>
 </section>
@@ -670,6 +745,46 @@
 
   const SUPABASE_URL = 'https://wtxikghyylclqnhxfcvu.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_3XEbw4-lAFfIVgG-haVbGQ_Q2305QI7';
+  const NIGERIA_STATES_LGAS = {
+"Abia": ["Aba North","Aba South","Arochukwu","Bende","Ikwuano","Isiala Ngwa North","Isiala Ngwa South","Isuikwuato","Obi Ngwa","Ohafia","Osisioma","Ugwunagbo","Ukwa East","Ukwa West","Umuahia North","Umuahia South","Umu Nneochi"],
+"Adamawa": ["Demsa","Fufure","Ganye","Gayuk","Gombi","Grie","Hong","Jada","Lamurde","Madagali","Maiha","Mayo Belwa","Michika","Mubi North","Mubi South","Numan","Shelleng","Song","Toungo","Yola North","Yola South"],
+"Akwa Ibom": ["Abak","Eastern Obolo","Eket","Esit Eket","Essien Udim","Etim Ekpo","Etinan","Ibeno","Ibesikpo Asutan","Ibiono Ibom","Ika","Ikono","Ikot Abasi","Ikot Ekpene","Ini","Itu","Mbo","Mkpat Enin","Nsit Atai","Nsit Ibom","Nsit Ubium","Obot Akara","Okobo","Onna","Oron","Oruk Anam","Udung Uko","Ukanafun","Uruan","Urue-Offong/Oruko","Uyo"],
+"Anambra": ["Aguata","Anambra East","Anambra West","Anaocha","Awka North","Awka South","Ayamelum","Dunukofia","Ekwusigo","Idemili North","Idemili South","Ihiala","Njikoka","Nnewi North","Nnewi South","Ogbaru","Onitsha North","Onitsha South","Orumba North","Orumba South","Oyi"],
+"Bauchi": ["Alkaleri","Bauchi","Bogoro","Damban","Darazo","Dass","Gamawa","Ganjuwa","Giade","Itas/Gadau","Jama'are","Katagum","Kirfi","Misau","Ningi","Shira","Tafawa Balewa","Toro","Warji","Zaki"],
+"Bayelsa": ["Brass","Ekeremor","Kolokuma/Opokuma","Nembe","Ogbia","Sagbama","Southern Ijaw","Yenagoa"],
+"Benue": ["Ado","Agatu","Apa","Buruku","Gboko","Guma","Gwer East","Gwer West","Katsina-Ala","Konshisha","Kwande","Logo","Makurdi","Obi","Ogbadibo","Ohimini","Oju","Okpokwu","Otukpo","Tarka","Ukum","Ushongo","Vandeikya"],
+"Borno": ["Abadam","Askira/Uba","Bama","Bayo","Biu","Chibok","Damboa","Dikwa","Gubio","Guzamala","Gwoza","Hawul","Jere","Kaga","Kala/Balge","Konduga","Kukawa","Kwaya Kusar","Mafa","Magumeri","Maiduguri","Marte","Mobbar","Monguno","Ngala","Nganzai","Shani"],
+"Cross River": ["Abi","Akamkpa","Akpabuyo","Bakassi","Bekwarra","Biase","Boki","Calabar Municipal","Calabar South","Etung","Ikom","Obanliku","Obubra","Obudu","Odukpani","Ogoja","Yakuur","Yala"],
+"Delta": ["Aniocha North","Aniocha South","Bomadi","Burutu","Ethiope East","Ethiope West","Ika North East","Ika South","Isoko North","Isoko South","Ndokwa East","Ndokwa West","Okpe","Oshimili North","Oshimili South","Patani","Sapele","Udu","Ughelli North","Ughelli South","Ukwuani","Uvwie","Warri North","Warri South","Warri South West"],
+"Ebonyi": ["Abakaliki","Afikpo North","Afikpo South","Ebonyi","Ezza North","Ezza South","Ikwo","Ishielu","Ivo","Izzi","Ohaozara","Ohaukwu","Onicha"],
+"Edo": ["Akoko-Edo","Egor","Esan Central","Esan North-East","Esan South-East","Esan West","Etsako Central","Etsako East","Etsako West","Igueben","Ikpoba Okha","Orhionmwon","Oredo","Ovia North-East","Ovia South-West","Owan East","Owan West","Uhunmwonde"],
+"Ekiti": ["Ado Ekiti","Efon","Ekiti East","Ekiti South-West","Ekiti West","Emure","Gbonyin","Ido Osi","Ijero","Ikere","Ikole","Ilejemeje","Irepodun/Ifelodun","Ise/Orun","Moba","Oye"],
+"Enugu": ["Aninri","Awgu","Enugu East","Enugu North","Enugu South","Ezeagu","Igbo Etiti","Igbo Eze North","Igbo Eze South","Isi Uzo","Nkanu East","Nkanu West","Nsukka","Oji River","Udenu","Udi","Uzo Uwani"],
+"Gombe": ["Akko","Balanga","Billiri","Dukku","Funakaye","Gombe","Kaltungo","Kwami","Nafada","Shongom","Yamaltu/Deba"],
+"Imo": ["Aboh Mbaise","Ahiazu Mbaise","Ehime Mbano","Ezinihitte","Ideato North","Ideato South","Ihitte/Uboma","Ikeduru","Isiala Mbano","Isu","Mbaitoli","Ngor Okpala","Njaba","Nkwerre","Nwangele","Obowo","Oguta","Ohaji/Egbema","Okigwe","Orlu","Orsu","Oru East","Oru West","Owerri Municipal","Owerri North","Owerri West"],
+"Jigawa": ["Auyo","Babura","Biriniwa","Birnin Kudu","Buji","Dutse","Gagarawa","Garki","Gumel","Guri","Gwaram","Gwiwa","Hadejia","Jahun","Kafin Hausa","Kazaure","Kiri Kasama","Kiyawa","Maigatari","Malam Madori","Miga","Ringim","Roni","Sule Tankarkar","Taura","Yankwashi"],
+"Kaduna": ["Birnin Gwari","Chikun","Giwa","Igabi","Ikara","Jaba","Jema'a","Kachia","Kaduna North","Kaduna South","Kagarko","Kajuru","Kaura","Kauru","Kubau","Kudan","Lere","Makarfi","Sabon Gari","Sanga","Soba","Zangon Kataf","Zaria"],
+"Kano": ["Ajingi","Albasu","Bagwai","Bebeji","Bichi","Bunkure","Dala","Dambatta","Dawakin Kudu","Dawakin Tofa","Doguwa","Fagge","Gabasawa","Garko","Garun Mallam","Gaya","Gezawa","Gwale","Gwarzo","Kabo","Kano Municipal","Karaye","Kibiya","Kiru","Kumbotso","Kunchi","Kura","Madobi","Makoda","Minjibir","Nasarawa","Rano","Rimin Gado","Rogo","Shanono","Sumaila","Takai","Tarauni","Tofa","Tsanyawa","Tudun Wada","Ungogo","Warawa","Wudil"],
+"Katsina": ["Bakori","Batagarawa","Batsari","Baure","Bindawa","Charanchi","Dandume","Danja","Dan Musa","Daura","Dutsi","Dutsin-Ma","Faskari","Funtua","Ingawa","Jibia","Kafur","Kaita","Kankara","Kankia","Katsina","Kurfi","Kusada","Mai'Adua","Malumfashi","Mani","Mashi","Matazu","Musawa","Rimi","Sabuwa","Safana","Sandamu","Zango"],
+"Kebbi": ["Aleiro","Arewa Dandi","Argungu","Augie","Bagudo","Birnin Kebbi","Bunza","Dandi","Fakai","Gwandu","Jega","Kalgo","Koko/Besse","Maiyama","Ngaski","Sakaba","Shanga","Suru","Wasagu/Danko","Yauri","Zuru"],
+"Kogi": ["Adavi","Ajaokuta","Ankpa","Bassa","Dekina","Ibaji","Idah","Igalamela Odolu","Ijumu","Kabba/Bunu","Kogi","Lokoja","Mopa Muro","Ofu","Ogori/Magongo","Okehi","Okene","Olamaboro","Omala","Yagba East","Yagba West"],
+"Kwara": ["Asa","Baruten","Edu","Ekiti","Ifelodun","Ilorin East","Ilorin South","Ilorin West","Irepodun","Isin","Kaiama","Moro","Offa","Oke Ero","Oyun","Pategi"],
+"Lagos": ["Agege","Ajeromi-Ifelodun","Alimosho","Amuwo-Odofin","Apapa","Badagry","Epe","Eti Osa","Ibeju-Lekki","Ifako-Ijaiye","Ikeja","Ikorodu","Kosofe","Lagos Island","Lagos Mainland","Mushin","Ojo","Oshodi-Isolo","Shomolu","Surulere"],
+"Nasarawa": ["Akwanga","Awe","Doma","Karu","Keana","Keffi","Kokona","Lafia","Nasarawa","Nasarawa Egon","Obi","Toto","Wamba"],
+"Niger": ["Agaie","Agwara","Bida","Borgu","Bosso","Chanchaga","Edati","Gbako","Gurara","Katcha","Kontagora","Lapai","Lavun","Magama","Mariga","Mashegu","Mokwa","Moya","Paikoro","Rafi","Rijau","Shiroro","Suleja","Tafa","Wushishi"],
+"Ogun": ["Abeokuta North","Abeokuta South","Ado-Odo/Ota","Egbado North","Egbado South","Ewekoro","Ifo","Ijebu East","Ijebu North","Ijebu North East","Ijebu Ode","Ikenne","Imeko Afon","Ipokia","Obafemi Owode","Odeda","Odogbolu","Ogun Waterside","Remo North","Shagamu"],
+"Ondo": ["Akoko North-East","Akoko North-West","Akoko South-West","Akoko South-East","Akure North","Akure South","Ese Odo","Idanre","Ifedore","Ilaje","Ile Oluji/Okeigbo","Irele","Odigbo","Okitipupa","Ondo East","Ondo West","Ose","Owo"],
+"Osun": ["Aiyedaade","Aiyedire","Atakunmosa East","Atakunmosa West","Boluwaduro","Boripe","Ede North","Ede South","Egbedore","Ejigbo","Ife Central","Ife East","Ife North","Ife South","Ifedayo","Ifelodun","Ila","Ilesa East","Ilesa West","Irepodun","Irewole","Isokan","Iwo","Obokun","Odo Otin","Ola Oluwa","Olorunda","Oriade","Orolu","Osogbo"],
+"Oyo": ["Afijio","Akinyele","Atiba","Atisbo","Egbeda","Ibadan North","Ibadan North-East","Ibadan North-West","Ibadan South-East","Ibadan South-West","Ibarapa Central","Ibarapa East","Ibarapa North","Ido","Irepo","Iseyin","Itesiwaju","Iwajowa","Kajola","Lagelu","Ogbomosho North","Ogbomosho South","Ogo Oluwa","Olorunsogo","Oluyole","Ona Ara","Orelope","Ori Ire","Oyo East","Oyo West","Saki East","Saki West","Surulere"],
+"Plateau": ["Barkin Ladi","Bassa","Bokkos","Jos East","Jos North","Jos South","Kanam","Kanke","Langtang North","Langtang South","Mangu","Mikang","Pankshin","Qua'an Pan","Riyom","Shendam","Wase"],
+"Rivers": ["Abua/Odual","Ahoada East","Ahoada West","Akuku-Toru","Andoni","Asari-Toru","Bonny","Degema","Eleme","Emuoha","Etche","Gokana","Ikwerre","Khana","Obio/Akpor","Ogba/Egbema/Ndoni","Ogu/Bolo","Okrika","Omuma","Opobo/Nkoro","Oyigbo","Port Harcourt","Tai"],
+"Sokoto": ["Binji","Bodinga","Dange Shuni","Gada","Goronyo","Gudu","Gwadabawa","Illela","Isa","Kebbe","Kware","Rabah","Sabon Birni","Shagari","Silame","Sokoto North","Sokoto South","Tambuwal","Tangaza","Tureta","Wamako","Wurno","Yabo"],
+"Taraba": ["Ardo Kola","Bali","Donga","Gashaka","Gassol","Ibi","Jalingo","Karim Lamido","Kurmi","Lau","Sardauna","Takum","Ussa","Wukari","Yorro","Zing"],
+"Yobe": ["Bade","Bursari","Damaturu","Fika","Fune","Geidam","Gujba","Gulani","Jakusko","Karasuwa","Machina","Nangere","Nguru","Potiskum","Tarmuwa","Yunusari","Yusufari"],
+"Zamfara": ["Anka","Bakura","Birnin Magaji/Kiyaw","Bukkuyum","Bungudu","Gummi","Gusau","Kaura Namoda","Maradun","Maru","Shinkafi","Talata Mafara","Tsafe","Zurmi"],
+"FCT": ["Abaji","Abuja Municipal","Bwari","Gwagwalada","Kuje","Kwali"]
+};
+
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   function haversineKm(lat1, lng1, lat2, lng2) {
@@ -715,10 +830,39 @@
       let awCoords = null;
       const awSubmitBtn = document.getElementById('aw-submit');
       const awMsg = document.getElementById('aw-msg');
+      const awStateSelect = document.getElementById('aw-state');
+      const awLgaSelect = document.getElementById('aw-lga');
+
+      Object.keys(NIGERIA_STATES_LGAS).sort().forEach(state => {
+        const opt = document.createElement('option');
+        opt.value = state;
+        opt.textContent = state;
+        awStateSelect.appendChild(opt);
+      });
+
+      awStateSelect.addEventListener('change', () => {
+        const state = awStateSelect.value;
+        awLgaSelect.innerHTML = '<option value="">Select LGA</option>';
+        if (state && NIGERIA_STATES_LGAS[state]) {
+          NIGERIA_STATES_LGAS[state].forEach(lga => {
+            const opt = document.createElement('option');
+            opt.value = lga;
+            opt.textContent = lga;
+            awLgaSelect.appendChild(opt);
+          });
+          awLgaSelect.disabled = false;
+        } else {
+          awLgaSelect.disabled = true;
+        }
+        checkAwReady();
+      });
+
+      awLgaSelect.addEventListener('change', checkAwReady);
 
       function checkAwReady() {
         const name = document.getElementById('aw-name').value.trim();
-        awSubmitBtn.disabled = !(name.length > 1 && awCoords);
+        const hasLocation = awStateSelect.value && awLgaSelect.value;
+        awSubmitBtn.disabled = !(name.length > 1 && awCoords && hasLocation);
       }
 
       document.getElementById('aw-name').addEventListener('input', checkAwReady);
@@ -739,9 +883,32 @@
         checkAwReady();
       });
 
+      // Generates a short, human-shareable code like PIN-AWK-7F42, retrying on
+      // the rare collision so every saved location gets a unique, reusable ID.
+      // Derives a short, readable prefix from the LGA name (e.g. "Awka South" -> "AWK"),
+      // so the code system scales to any Nigerian location, not just one pilot city.
+      function lgaPrefix(lga) {
+        const cleaned = lga.replace(/[^a-zA-Z]/g, '').toUpperCase();
+        return cleaned.slice(0, 3) || 'NGA';
+      }
+
+      async function generatePinCode(prefix) {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no O/0/I/1 to avoid confusion
+        for (let attempt = 0; attempt < 5; attempt++) {
+          let suffix = '';
+          for (let i = 0; i < 4; i++) suffix += chars[Math.floor(Math.random() * chars.length)];
+          const code = `PIN-${prefix}-${suffix}`;
+          const { data } = await supabaseClient.from('locations').select('id').eq('pin_code', code).limit(1);
+          if (!data || data.length === 0) return code;
+        }
+        return `PIN-${prefix}-${Date.now().toString(36).toUpperCase().slice(-4)}`; // fallback, virtually never hit
+      }
+
       awSubmitBtn.addEventListener('click', async () => {
         const name = document.getElementById('aw-name').value.trim();
-        if (!name || !awCoords) return;
+        const state = awStateSelect.value;
+        const lga = awLgaSelect.value;
+        if (!name || !awCoords || !state || !lga) return;
 
         awSubmitBtn.disabled = true;
         awSubmitBtn.textContent = 'Checking…';
@@ -749,22 +916,25 @@
 
         const { data: nearby } = await supabaseClient
           .from('locations')
-          .select('id, name, lat, lng')
+          .select('id, name, lat, lng, pin_code')
           .gte('lat', awCoords.lat - 0.003).lte('lat', awCoords.lat + 0.003)
           .gte('lng', awCoords.lng - 0.003).lte('lng', awCoords.lng + 0.003);
 
         const duplicate = (nearby || []).find(loc => haversineKm(awCoords.lat, awCoords.lng, loc.lat, loc.lng) < 0.1);
 
         if (duplicate) {
-          awMsg.textContent = `This spot is already saved as "${duplicate.name}" — thanks for double-checking!`;
+          awMsg.innerHTML = `This spot is already saved as "${duplicate.name}"${duplicate.pin_code ? ` — its code is <strong>${duplicate.pin_code}</strong>` : ''}. Thanks for double-checking!`;
           awMsg.className = 'aw-msg duplicate';
           awSubmitBtn.disabled = false;
           awSubmitBtn.textContent = 'Save this address';
           return;
         }
 
+        awSubmitBtn.textContent = 'Generating code…';
+        const pinCode = await generatePinCode(lgaPrefix(lga));
+
         const { error } = await supabaseClient.from('locations').insert({
-          name, lat: awCoords.lat, lng: awCoords.lng
+          name, lat: awCoords.lat, lng: awCoords.lng, pin_code: pinCode, state, lga
         });
 
         awSubmitBtn.textContent = 'Save this address';
@@ -774,9 +944,12 @@
           awMsg.className = 'aw-msg error';
           awSubmitBtn.disabled = false;
         } else {
-          awMsg.textContent = `"${name}" saved! Businesses can now find it when creating deliveries.`;
+          awMsg.innerHTML = `"${name}" saved! Your PinPoint code is <strong>${pinCode}</strong> — share it anytime instead of a full address.`;
           awMsg.className = 'aw-msg success';
           document.getElementById('aw-name').value = '';
+          awStateSelect.value = '';
+          awLgaSelect.innerHTML = '<option value="">Select state first</option>';
+          awLgaSelect.disabled = true;
           if (awMarker) { awMap.removeLayer(awMarker); awMarker = null; }
           awCoords = null;
         }
@@ -785,6 +958,38 @@
       console.error('Address widget failed to initialize:', e);
     }
   }
+
+  document.getElementById('aw-lookup-btn').addEventListener('click', async () => {
+    const codeInput = document.getElementById('aw-lookup-code');
+    const lookupMsg = document.getElementById('aw-lookup-msg');
+    const code = codeInput.value.trim().toUpperCase();
+
+    if (!code) return;
+
+    lookupMsg.textContent = 'Searching…';
+    lookupMsg.className = 'aw-msg';
+
+    try {
+      const { data, error } = await supabaseClient
+        .from('locations')
+        .select('name, lat, lng, pin_code')
+        .eq('pin_code', code)
+        .limit(1);
+
+      if (error || !data || data.length === 0) {
+        lookupMsg.textContent = "We couldn't find that code — please check it and try again.";
+        lookupMsg.className = 'aw-msg error';
+        return;
+      }
+
+      const loc = data[0];
+      lookupMsg.innerHTML = `<strong>${loc.name}</strong><br>${loc.lat.toFixed(5)}, ${loc.lng.toFixed(5)}`;
+      lookupMsg.className = 'aw-msg success';
+    } catch (e) {
+      lookupMsg.textContent = 'Something went wrong — please try again.';
+      lookupMsg.className = 'aw-msg error';
+    }
+  });
 
   initAddressWidget();
 </script>
