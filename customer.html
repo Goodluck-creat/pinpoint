@@ -143,7 +143,7 @@
   .map-hero {
     position: relative;
     width: 100%;
-    height: calc(100vh - 58px); /* fills the screen below the slim brand header */
+    height: 50vh;
     background: #E5E9F0;
   }
 
@@ -171,23 +171,21 @@
     box-shadow: 0 8px 24px rgba(15,23,42,0.12);
   }
 
-  .map-overlay-bottom {
-    position: absolute;
-    bottom: 0; left: 0; right: 0;
+  .info-sheet {
+    position: relative;
     z-index: 20;
     background: var(--surface);
     border-radius: 22px 22px 0 0;
-    box-shadow: 0 -8px 30px rgba(15,23,42,0.15);
-    padding: 18px 18px 22px;
-    max-height: 60vh;
-    overflow-y: auto;
+    box-shadow: 0 -10px 30px rgba(15,23,42,0.1);
+    padding: 18px 18px 24px;
+    margin-top: -22px;
   }
 
   .sheet-handle {
     width: 40px; height: 4px;
     background: var(--border);
     border-radius: 100px;
-    margin: 0 auto 14px;
+    margin: 0 auto 16px;
   }
 
   .below-fold-content {
@@ -742,32 +740,32 @@
             The rider appears to have moved off the expected route.
           </div>
         </div>
+      </div>
 
-        <div class="map-overlay-bottom">
-          <div class="sheet-handle"></div>
-          <div class="rider-row" style="margin-bottom:14px;">
-            <div class="rider-avatar-sm">${avatarContent}</div>
-            <div>
-              <div class="rider-name">${rider.name || 'Rider not assigned yet'}</div>
-              <div class="rider-vehicle">${rider.vehicle_type || ''}</div>
-            </div>
+      <div class="info-sheet">
+        <div class="sheet-handle"></div>
+        <div class="rider-row" style="margin-bottom:14px;">
+          <div class="rider-avatar-sm">${avatarContent}</div>
+          <div>
+            <div class="rider-name">${rider.name || 'Rider not assigned yet'}</div>
+            <div class="rider-vehicle">${rider.vehicle_type || ''}</div>
           </div>
-
-          <div class="stats-row" id="stats-row" style="display:none;">
-            <div class="stat-card">
-              <div class="stat-label">Distance to you</div>
-              <div class="stat-value" id="stat-distance">—</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-label">Est. arrival</div>
-              <div class="stat-value" id="stat-eta">—</div>
-            </div>
-          </div>
-
-          ${pinCardHtml}
-
-          <div id="action-area"></div>
         </div>
+
+        <div class="stats-row" id="stats-row" style="display:none;">
+          <div class="stat-card">
+            <div class="stat-label">Distance to you</div>
+            <div class="stat-value" id="stat-distance">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Est. arrival</div>
+            <div class="stat-value" id="stat-eta">—</div>
+          </div>
+        </div>
+
+        ${pinCardHtml}
+
+        <div id="action-area"></div>
       </div>
 
       <div class="below-fold-content">
