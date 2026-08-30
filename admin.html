@@ -366,8 +366,8 @@
     document.getElementById(sectionId).classList.add('active');
   }
 
-  async function checkIsAdmin(email) {
-    const { data, error } = await supabaseClient.from('admins').select('*').ilike('email', email).limit(1);
+  async function checkIsAdmin(userId) {
+    const { data, error } = await supabaseClient.from('admins').select('*').eq('auth_user_id', userId).limit(1);
     if (error) {
       console.error('Admin check failed:', error);
       return { error: error.message };
@@ -393,7 +393,7 @@
       return;
     }
 
-    const admin = await checkIsAdmin(email);
+    const admin = await checkIsAdmin(data.user.id);
     btn.disabled = false; btn.textContent = 'Log in';
 
     if (admin && admin.error) {
@@ -431,8 +431,8 @@
 
   supabaseClient.auth.getSession().then(async ({ data: { session } }) => {
     if (session) {
-      const admin = await checkIsAdmin(session.user.email);
-      if (admin) { currentAdmin = admin; enterDashboard(); return; }
+      const admin = await checkIsAdmin(session.user.id);
+      if (admin && !admin.error) { currentAdmin = admin; enterDashboard(); return; }
     }
     authView.style.display = 'flex';
     dashboardView.style.display = 'none';
