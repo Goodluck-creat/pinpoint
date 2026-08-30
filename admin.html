@@ -323,6 +323,16 @@
         </div>
         <div class="form-msg" id="settings-msg"></div>
       </div>
+
+      <div class="settings-card">
+        <div class="settings-title">Confirm a stuck signup</div>
+        <div class="settings-desc" style="margin-bottom:14px;">If someone signed up but got stuck on an "email not verified" error before ever logging in, confirm their email here so they can log in immediately — no SQL needed.</div>
+        <div class="settings-input-row" style="margin-top:0;">
+          <input type="email" id="confirm-email-input" placeholder="stuck-user@email.com" style="width:100%; max-width:280px;">
+          <button class="settings-save-btn" id="confirm-email-btn">Confirm email</button>
+        </div>
+        <div class="form-msg" id="confirm-email-msg"></div>
+      </div>
     </div>
 
   </main>
@@ -513,6 +523,45 @@
       platformSettings.free_delivery_limit = value;
       msg.textContent = `Free delivery limit updated to ${value}.`;
       msg.className = 'form-msg success';
+    }
+  });
+
+  document.getElementById('confirm-email-btn').addEventListener('click', async () => {
+    const btn = document.getElementById('confirm-email-btn');
+    const msg = document.getElementById('confirm-email-msg');
+    const email = document.getElementById('confirm-email-input').value.trim();
+
+    if (!email) {
+      msg.textContent = 'Please enter an email address.';
+      msg.className = 'form-msg error';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Confirming…';
+    msg.className = 'form-msg';
+
+    try {
+      const { data, error } = await supabaseClient.functions.invoke('confirm-user-email', {
+        body: { email }
+      });
+
+      btn.disabled = false;
+      btn.textContent = 'Confirm email';
+
+      if (error || (data && data.error)) {
+        msg.textContent = 'Could not confirm: ' + (data?.error || error.message);
+        msg.className = 'form-msg error';
+      } else {
+        msg.textContent = `${email} is now confirmed and can log in.`;
+        msg.className = 'form-msg success';
+        document.getElementById('confirm-email-input').value = '';
+      }
+    } catch (e) {
+      btn.disabled = false;
+      btn.textContent = 'Confirm email';
+      msg.textContent = 'Something went wrong — please try again.';
+      msg.className = 'form-msg error';
     }
   });
 
